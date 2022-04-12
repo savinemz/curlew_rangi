@@ -37,3 +37,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# dossier SIG
+SIG/
+.\#script_sig.r
+\#script_sig.r\#
