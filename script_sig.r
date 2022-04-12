@@ -1,11 +1,14 @@
+setwd("C:/git/curlew_rangi/SIG")
+
+
 library(sf)
 library(data.table)
 library(dplyr)
 
-## source("functions/fun_curlew_rangi.r")
+ source("functions/fun_curlew_rangi.r")
 
 
-## f_shp_rangi(TRUE)
+ f_shp_rangi(TRUE)
 
 
 
