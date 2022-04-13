@@ -1,5 +1,3 @@
-setwd("C:/git/curlew_rangi/SIG")
-
 
 library(sf)
 library(data.table)
@@ -26,6 +24,7 @@ for(i in 1:length(vec_shp)) {
     shp$id <- i
     shp <- shp[,c("id","habitat")]
     shp <- st_transform(shp,crs=3832)
+    shp <- st_simplify(shp)
     l_shp[[i]]  <-  shp
     names(l_shp)[i]  <-  shp_name[i]
 }
@@ -42,6 +41,8 @@ l_shp[[11]]$ id  <-  11
 shp_loc  <- st_union(l_shp$reef_buffer,l_shp$bush)
 shp_loc <- st_union(shp_loc,l_shp$forest_dense)
 shp_loc <- st_union(shp_loc,l_shp$forest_clairseme)
+## ERROR ! Erreur dans CPL_geos_op2(op, x, y) : std::bad_alloc
+
 shp_loc <- st_union(shp_loc,l_shp$mudflat)
 
 l_shp[[12]]  <-  st_difference(l_shp$land,shp_loc)
