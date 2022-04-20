@@ -83,7 +83,6 @@ land_lb <- st_intersection(land,st_buffer(st_union(rangi),1000))
 courlis_sf_lb <- st_intersection(courlis_sf,st_buffer(st_union(rangi),1000))
 
 
-
 gg <- ggplot()
 gg <- gg + geom_sf(data = land_lb)
 gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.7)
