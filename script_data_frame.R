@@ -33,7 +33,7 @@ A<-NA
 
 for(i in 1:153){
  A<- sum(rangi$area_poly [rangi$id_motu == i])
-  
+
   area_motu [i]<-A
 }
 
@@ -47,30 +47,51 @@ rangi <- merge(rangi, area_motu, by = "id_motu")
 #identifiant des polygones
 rangi$id_poly <- 1: nrow(rangi)
 rangi <- rangi %>% relocate(id_poly, .after = habitat)
-
+                                        # [RL] OK, par convention l'identifiant ce met en premiere colonne
 
 #proportion des habitats par motu
 rangi$proportion <- (rangi$area_poly/rangi$area_motu)*100
+                                        # [RL] ATTENTION un proportion c'est entre 0 et 1
+                                        # je n'avais pas vu que en faisait un pourcentage et
+                                        # je ne comprenais pas les valeurs
+                                        # il faut bien nommer les variables pour eviter les confusions
+                                        # si proportion poly/motu si pourcentage poly/motu*100
+
 rangi <- rangi %>% relocate(proportion, .after = area_motu)
 
 # localisation des courlis par polygone
 loc_courlis <- read.csv("localisation_courlis/courlis.csv")
-loc_courlis <- subset(localisation_courlis,location_long < 0)
+loc_courlis <- subset(loc_courlis,location_long < 0)
 
 courlis_sf <- st_as_sf(loc_courlis, coords = c("location_long","location_lat"))
-#st_crs(courlis_sf) <- 4326
-#courlis_sf <- st_transform(courlis_sf,crs=3832)
+                                        # [RL] il faut renseigner le CRS
+st_crs(courlis_sf) <- 4326
+                                        # [RL] et faire la transformation pour que les donnees courlis soient
+                                        # projetees dans le meme referentiel que les polygones de rangi
+courlis_sf <- st_transform(courlis_sf,crs=3832)
 
 
-st_agr(courlis_sf) = "constant"
-st_agr(rangi) = "constant"
+## st_agr(courlis_sf) = "constant"
+## st_agr(rangi) = "constant"
+                                        # [RL] je ne sais pas à quoi sert la fonction st_agr
 sum_loc <- st_intersection(rangi, courlis_sf)
 
-sum_loc <- st_intersection(st_geometry(rangi), st_geometry(courlis_sf))
+## sum_loc <- st_intersection(st_geometry(rangi), st_geometry(courlis_sf))
 
+
+                                        # [RL] a partir de la on peut faire plein de chose
+## pour commencer on va garder qu'un info de presence dans un polygon par oiseau et par jour
+## pour eviter les double comptage et les problemes de non independence des donnees
+
+## ajout de la colonne date on pourrai le faire sur les donnees courlis directement ce serai mieux
+sum_loc$date <- substr(sum_loc$timestamp,1,10)
+
+library(data.table)
+setDT(sum_loc)
+sum_loc <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id,date)][,.(occurence = .N),by=.(id_poly)]
 
 rangi <- merge(rangi, sum_loc, bx = "id_poly", all.x = T)
-
+rangi$occurence[is.na(rangi$occurence)] <- 0
 
 
 
