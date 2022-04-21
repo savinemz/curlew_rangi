@@ -3,8 +3,6 @@ library(sf); library(dplyr)
 #calculs des surfaces par polygones: methode 1
 rangi <- st_read("SIG/rangi.shp")
 rangi$area_poly <- st_area(rangi)
-#st_crs(rangi) <- 3832
-#rangi$area2 <- st_area(rangi)
 rangi$area_poly
 
 
@@ -46,11 +44,11 @@ rangi <- merge(rangi, area_motu, by = "id_motu")
 
 #identifiant des polygones
 rangi$id_poly <- 1: nrow(rangi)
-rangi <- rangi %>% relocate(id_poly, .after = habitat)
-                                        # [RL] OK, par convention l'identifiant ce met en premiere colonne
+rangi <- rangi %>% relocate(id_poly, .after = id_motu)
+
 
 #proportion des habitats par motu
-rangi$proportion <- (rangi$area_poly/rangi$area_motu)*100
+rangi$proportion <- (rangi$area_poly/rangi$area_motu)
                                         # [RL] ATTENTION un proportion c'est entre 0 et 1
                                         # je n'avais pas vu que en faisait un pourcentage et
                                         # je ne comprenais pas les valeurs
