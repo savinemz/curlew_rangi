@@ -128,8 +128,8 @@ d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportio
 # proportion des courlis en fonction de la proportion des habitats
 library(ggplot2)
 
-gg <- ggplot(data = rangi_essai, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation))) 
+gg <- ggplot(data = rangi_DTsm, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation))) 
 gg <- geom_bar(stat="identity", position = "dodge")
 gg <- geom_errorbarh(aes(ymin = inf95, ymax = sup95))
-gg <- geom_smooth(data = rangi_essai, stat = "smooth", position = "identity")
-
+gg <- geom_smooth(data = rangi_DTsm, stat = "smooth", position = "identity")
+gg
