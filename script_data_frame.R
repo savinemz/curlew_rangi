@@ -119,13 +119,13 @@ names(rangi_DTsm)[6] <- "sup95"
 
 
 
-#la methode en une ligne de RL mais que je n'arrive pas à faire       
+#la methode en une ligne de RL mais que je n'arrive pas à faire tourner      
 d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportion)),(inf95 = quantile(proportion, 0,025)),(sup95 = quantile(proportion, 0,975)), by=.(habitat), by =.(occupation))]
 #d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportion)),(inf95 = quantile(proportion, 0,025)),(sup95 = quantile(proportion, 0.975)), bx=.(habitat, occupation))]
 
 
           
-# proportion des courlis en fonction de la proportion des habitats
+# graphique = proportion moyenne des habitats en fonction de l'occupation des motus (T, F) par habitat
 library(ggplot2)
 
 gg <- ggplot(data = rangi_DTsm, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation))) 
@@ -133,3 +133,9 @@ gg <- geom_bar(stat="identity", position = "dodge")
 gg <- geom_errorbarh(aes(ymin = inf95, ymax = sup95))
 gg <- geom_smooth(data = rangi_DTsm, stat = "smooth", position = "identity")
 gg
+#ne donne pas de resusltats concret pour le moment = à retravailler lundi
+
+
+
+
+
