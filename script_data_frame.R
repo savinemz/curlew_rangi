@@ -111,7 +111,13 @@ names(quantile_inf95)[3] <- "inf95"
 names(quantile_sup95)[3] <- "sup95"
 
 rangi_DTsm <- cbind(rangi_DTsm, quantile_inf95$`inf95`, quantile_sup95$`sup95`)
-#cbind() = meme chose que merge() quand les tableaux sont equivalents
+                                        # [RL] quantile_inf95$`inf95` peut s'ecrire quantile_inf95$inf95
+                                        #cbind() = meme chose que merge() quand les tableaux sont equivalents
+                                        # [RL] je ne suis pas fan cbind veux bien dire ce que ca fait
+                                        # la fonction est vraiment aveugle si tu reviens sur ton code et ajoute une modif
+                                        # qui change l'ordre des lignes d'un tableau ton cbind fera nimp
+                                        # un merge associe tes tableau en fonction d'une ou plusieur colonne c'est plus robuste
+
 
 names(rangi_DTsm)[5] <- "inf95"
 names(rangi_DTsm)[6] <- "sup95"
