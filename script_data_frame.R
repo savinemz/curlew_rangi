@@ -110,42 +110,45 @@ quantile_sup95 <- aggregate(proportion~habitat + occupation, rangi_DT, function(
 names(quantile_inf95)[3] <- "inf95"
 names(quantile_sup95)[3] <- "sup95"
 
-rangi_DTsm <- cbind(rangi_DTsm, quantile_inf95$`inf95`, quantile_sup95$`sup95`)
-                                        # [RL] quantile_inf95$`inf95` peut s'ecrire quantile_inf95$inf95
-                                        #cbind() = meme chose que merge() quand les tableaux sont equivalents
-                                        # [RL] je ne suis pas fan cbind veux bien dire ce que ca fait
-                                        # la fonction est vraiment aveugle si tu reviens sur ton code et ajoute une modif
-                                        # qui change l'ordre des lignes d'un tableau ton cbind fera nimp
-                                        # un merge associe tes tableau en fonction d'une ou plusieur colonne c'est plus robuste
 
 
-names(rangi_DTsm)[5] <- "inf95"
-names(rangi_DTsm)[6] <- "sup95"
+rangi_DTsm <- merge(rangi_DTsm, quantile_inf95, bx =.(habitat, occupation))
+rangi_DTsm <- merge(rangi_DTsm, quantile_sup95, bx =.(habitat, occupation))
 
 
 
-
-## la methode en une ligne de RL mais que je n'arrive pas à faire tourner
+## la methode en une ligne de RL
 rangi_DT[,proportion := as.numeric(proportion)]
 d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
-#d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportion)),(inf95 = quantile(proportion, 0,025)),(sup95 = quantile(proportion, 0.975)), bx=.(habitat, occupation))]
 
 
 
 # graphique = proportion moyenne des habitats en fonction de l'occupation des motus (T, F) par habitat
-library(ggplot2)
-
-gg <- ggplot(data = rangi_DTsm, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation)))
-gg <- geom_bar(stat="identity", position = "dodge")
-gg <- geom_errorbarh(aes(ymin = inf95, ymax = sup95))
-gg <- geom_smooth(data = rangi_DTsm, stat = "smooth", position = "identity")
-gg
-#ne donne pas de resusltats concret pour le moment = à retravailler lundi
+library(ggplot2); library(units)
 
 
+
+#graphique + chgmt couleur par occupation avec intervalles 95%
+gg2 <-    ggplot(data = d_gg, aes(x = habitat, y = prop_mean, fill = occupation, group = occupation)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = inf95, ymax = sup95), width = 0.5,alpha=.5,size=1) +
+  scale_fill_brewer(palette="Paired") + theme_minimal()
+gg2
+
+#graphique RL
 gg <- ggplot(data = d_gg, aes(x = habitat, y = prop_mean,fill = occupation,colour=occupation,group=occupation))
 gg <- gg + geom_errorbar(aes(ymin = inf95, ymax = sup95),width = 0.5,alpha=.5,size=1)
 gg <- gg +  geom_point(alpha=.8,size=2)
 gg
 
 
+library(ggplot2)
+qplot(sample = prop_mean, data = d_gg)
+
+
+library(ggplot2)
+qplot(sample = proportion, data = rangi_DT)
+rangi_DT[,proportion := as.numeric(proportion)]
+shapiro.test(rangi_DT$proportion)
+shapiro.test(d_gg$prop_mean)
+kruskal.test(proportion ~ habitat, data = rangi_DT)
