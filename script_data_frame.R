@@ -29,7 +29,7 @@ area_habitat <- aggregate(area_poly~habitat, rangi, sum)
 
 #for(i in 1:153){
   #A<- sum(rangi$area_poly [rangi$id_motu == i])
-  
+
   #area_motu [i]<-A
 #}
 
@@ -110,7 +110,7 @@ quantile_sup95 <- aggregate(proportion~habitat + occupation, rangi_DT, function(
 names(quantile_inf95)[3] <- "inf95"
 names(quantile_sup95)[3] <- "sup95"
 
-rangi_DTsm <- cbind(rangi_DTsm, quantile_inf95$`inf95`, quantile_sup95$`sup95`) 
+rangi_DTsm <- cbind(rangi_DTsm, quantile_inf95$`inf95`, quantile_sup95$`sup95`)
 #cbind() = meme chose que merge() quand les tableaux sont equivalents
 
 names(rangi_DTsm)[5] <- "inf95"
@@ -119,16 +119,17 @@ names(rangi_DTsm)[6] <- "sup95"
 
 
 
-#la methode en une ligne de RL mais que je n'arrive pas à faire tourner      
-d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportion)),(inf95 = quantile(proportion, 0,025)),(sup95 = quantile(proportion, 0,975)), by=.(habitat), by =.(occupation))]
+## la methode en une ligne de RL mais que je n'arrive pas à faire tourner
+rangi_DT[,proportion := as.numeric(proportion)]
+d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
 #d_gg <- rangi_DT [,.(prop_mean = (mean(proportion)),(prop_med = median(proportion)),(inf95 = quantile(proportion, 0,025)),(sup95 = quantile(proportion, 0.975)), bx=.(habitat, occupation))]
 
 
-          
+
 # graphique = proportion moyenne des habitats en fonction de l'occupation des motus (T, F) par habitat
 library(ggplot2)
 
-gg <- ggplot(data = rangi_DTsm, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation))) 
+gg <- ggplot(data = rangi_DTsm, (aes (x = habitat, y = prop_mean, fill = habitat, group = occupation)))
 gg <- geom_bar(stat="identity", position = "dodge")
 gg <- geom_errorbarh(aes(ymin = inf95, ymax = sup95))
 gg <- geom_smooth(data = rangi_DTsm, stat = "smooth", position = "identity")
@@ -136,6 +137,9 @@ gg
 #ne donne pas de resusltats concret pour le moment = à retravailler lundi
 
 
-
+gg <- ggplot(data = d_gg, aes(x = habitat, y = prop_mean,fill = occupation,colour=occupation,group=occupation))
+gg <- gg + geom_errorbar(aes(ymin = inf95, ymax = sup95),width = 0.5,alpha=.5,size=1)
+gg <- gg +  geom_point(alpha=.8,size=2)
+gg
 
 
