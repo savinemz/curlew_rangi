@@ -142,13 +142,25 @@ gg
 
 #creation tableur pour l'ouverture des donnees numeriques => ACP
 library(tidyr)
-rangi_PCA <- rangi_DT[,-c(1,4,5,6,8,9)]
+rangi_PCA <- rangi_DT[,-c(1,4,6,7,8,9)]
 rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
-            values_from = "proportion")
+            values_from = "area_poly")
 rangi_PCA[is.na(rangi_PCA) == T] <- 0
 row.names (rangi_PCA) <- rangi_PCA$id_motu
 rangi_PCA <- rangi_PCA[,-1]
 rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
+
+
+#library(tidyr)
+#rangi_PCAs <- rangi_DT[,-c(1,4,5,6,8,9)]
+#rangi_PCAs <-pivot_wider(rangi_PCAs, names_from = "habitat",
+                        #values_from = "proportion")
+#rangi_PCAs[is.na(rangi_PCAs) == T] <- 0
+#row.names (rangi_PCAs) <- rangi_PCAs$id_motu
+#rangi_PCAs <- rangi_PCAs[,-1]
+#rangi_PCAs <- rangi_PCAs[,-c(1,2,3,4)]
+
+
 
 # realisation de l'APC avec la librairie FactoMineR
 library("FactoMineR")
@@ -156,36 +168,38 @@ library("factoextra")
 library(ade4)
 
 ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
-ACP <- print(rangi_PCA)
-ACP <- dudi.pca(rangi_PCA, center = TRUE, scale = TRUE, scannf = FALSE)
-ACP
+#ACP <- print(rangi_PCA)
+#ACP <- dudi.pca(rangi_PCA)
+
+#ACPs <- PCA(rangi_PCAs, scale.unit = TRUE, ncp = 5, graph = TRUE)
+#ACPs <- print(rangi_PCAs)
+#ACPs <- dudi.pca(rangi_PCAs)
+
+ACP$var
+#str(ACP)
+# coord: Coordonnées
+# Cos2: qualité de répresentation
+# contrib: Contributions aux composantes principales
 
 # extraction des valeurs propres et la proportion de variances retenues par les composantes principales
 eig.val <- get_eigenvalue(ACP)
 eig.val
-            #Dim1,2,3,4>1 = les composantes principales (PC) concernée représentent 
+
+
+            #Dim1,2>1 = les composantes principales (PC) concernée représentent 
             #plus de variance par rapport à une seule variable d'origine,lorsque les données sont standardisées.
             # eigenvalue>1 est généralement utilisé comme seuil à partir duquel les PC sont conservés.
 
 
 # graphique des valeurs propres
-plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 40))
+plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 70))
 plot_eigenvalue
 
 #extraction des résultats
-var <- get_pca_var(ACP)
-var
-
-# Coordonnées
-head(var$coord)
-# Cos2: qualité de répresentation
-head(var$cos2)
-# Contributions aux composantes principales
-head(var$contrib)
+#var <- get_pca_var(ACP)
+#var
 
 
-# Coordonnées des variables
-head(var$coord, 4)
 
 # graphique de corrélation des variables
 fviz_pca_var(ACP, col.var = "contrib",
@@ -200,37 +214,6 @@ fviz_pca_var(ACP, col.var = "contrib",
             #La distance entre les variables et l'origine mesure la qualité de représentation des variables. 
             #Les variables qui sont loin de l'origine sont bien représentées par l'ACP.
 
-
-
-fviz_pca_ind(ACP, col.ind="coord", geom = "point", pointsize = 3) +
-  scale_color_gradient2(low="white", mid="blue", high="red", midpoint=0.6, space = "Lab")+ theme_minimal()
-
-
-
-
-
-
-
-
-#ne marche pas
-fviz_pca_ind(ACP,
-             geom.ind = "point", # Montre les points seulement (mais pas le "text")
-             col.ind = "coord", fill.ind = var$coord,
-             gradient.cols = c("blue", "yellow", "red"),
-             #addEllipses = TRUE, # Ellipses de concentration
-             legend.title = "Groups"
-)
-
-#test mais je sais pas si ça peut servir
-fviz_pca_biplot(ACP, repel = TRUE,
-                geom.ind = "point",
-                col.var = "#2E9FDF", # Couleur des variables
-                col.ind = "#696969"  # Couleur des individues
-)
-
-
-            
-head(var$cos2, 4)
 
 #library("corrplot")
 #corrplot(var$cos2, is.corr=FALSE)
@@ -263,7 +246,35 @@ fviz_pca_ind(ACP, col.ind="cos2", geom = "point", pointsize = 3) +
 fviz_pca_ind(ACP, col.ind="contrib", geom = "point", pointsize = 3) +
   scale_color_gradient2(low="white", mid="blue", high="red", midpoint=3, space ="Lab")+ theme_minimal()         
 
+# visualisation des motus par coordonnées
+fviz_pca_ind(ACP, col.ind="coord", geom = "point", pointsize = 3) +
+  scale_color_gradient2(low="white", mid="blue", high="red", midpoint=0.6, space = "Lab")+ theme_minimal()
 
 
 
 
+
+
+library(tidyr)
+rangi_PCAm <- rangi_DT[,-c(1,4,5,7,8,9)]
+rangi_PCAm <-pivot_wider(rangi_PCAm, names_from = "habitat",
+                        values_from = "area_motu")
+rangi_PCAm[is.na(rangi_PCAm) == T] <- 0
+row.names (rangi_PCAm) <- rangi_PCAm$id_motu
+rangi_PCAm <- rangi_PCAm[,-1]
+rangi_PCAm <- rangi_PCAm[,-c(1,2,3,4)]
+
+
+library("FactoMineR")
+library("factoextra")
+library(ade4)
+
+ACPm <- PCA(rangi_PCAm, scale.unit = TRUE, ncp = 5, graph = TRUE)
+
+
+fviz_pca_var(ACPm, col.var = "contrib",
+             gradient.cols = c("blue", "yellow", "red"),
+             legend.title = "Contrib_var",
+             geom.ind = "point",
+             repel = TRUE
+)
