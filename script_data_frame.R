@@ -262,11 +262,8 @@ fviz_pca_ind(ACP, col.ind="coord", geom = "point", pointsize = 3) +
 
 
 
-#Description du jeu de données
-
 
 #Distribution des localisations par habitat
-
 loc_courlis <- read.csv("localisation_courlis/courlis.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
 
@@ -282,16 +279,14 @@ distri_loc_hab <- distri_loc_hab %>% relocate(proportion, .after = habitat)
 
 
 
-# preparation tableau occurence par habitat
-
-
+#  tableau occurence par habitat par oiseau
 library(data.table)
 setDT(distri_loc_hab)
 tab_hab <- distri_loc_hab[,.(nb = .N),by=.(bird_id,habitat)]#.N = nombre de
 tab_hab <- tab_hab[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
 
 
-# area_habitat (habitat_ha reference proportion)
+# barre de reference : habitat de l'ensemble des motus
 area_habitat <- aggregate(area_poly~habitat, rangi, sum)
 area_habitat$proportion <- area_habitat$area_poly/sum(area_habitat$area_poly)
 area_habitat <- area_habitat[,-c(2)]
@@ -301,9 +296,27 @@ area_habitat[,nb := as.numeric(proportion)]
 area_habitat <- area_habitat[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
 
 setcolorder(area_habitat,c("bird_id","habitat","nb"))
-
-
 tab_hab <- bind_rows(tab_hab, area_habitat)
+
+
+# barre de reference : habitat par motus occupés
+sum_loc_occ <- aggregate(occurence~id_motu, rangi_DT, sum)
+sum_loc_occ <- subset(sum_loc_occ, !(occurence == 0))
+
+
+sum_loc_occ1 <- merge(rangi, sum_loc_occ, bx = id_motu)
+area_motu_occ <- aggregate(area_poly~habitat, sum_loc_occ1, sum)
+area_motu_occ$proportion <- area_motu_occ$area_poly/sum(area_motu_occ$area_poly)
+area_motu_occ <- area_motu_occ[,-c(2)]
+setDT(area_motu_occ)
+area_motu_occ[,bird_id := "habitat_motu_occupe"]
+area_motu_occ[,nb := as.numeric(proportion)]
+area_motu_occ <- area_motu_occ[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
+
+tab_hab <- bind_rows(tab_hab, area_motu_occ)
+
+
+
 
 tab_fill  <- read.csv("library/colour_habitat.csv")
 vec_fill <- tab_fill$colour
@@ -315,11 +328,38 @@ tab_bird[,label := paste0(bird_id," (",nb,")")]
 
 setDF(distri_loc_hab)
 
+
+# representation graphique de la distribution des localisations par habitat et par habitat des motus occupes
 ggdistrib <- ggplot(data = tab_hab,aes(x = nb, y = bird_id, fill = habitat))
 ggdistrib <- ggdistrib + geom_bar( colour = NA, stat="identity", position = "fill")
 ggdistrib <- ggdistrib + scale_fill_manual(values = vec_fill)
-ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat",tab_bird[,bird_id]),labels= c("habitat",tab_bird[,label]))
+ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat_motu_occupe", "habitat",tab_bird[,bird_id]),labels= c("habitat_motu_occupe", "habitat",tab_bird[,label]))
 ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
 ggdistrib
+
+#enlever les individues C9 et C4
+
+
+
+#Description du jeu de données
+
+#nb de donnée par oiseau, le nombre de jour de données par oiseau, la différence de temps entre la première et la dernière données
+
+
+rangi_DT[,area_poly := as.numeric(area_poly)]
+
+
+
+date:=as.Date(date)
+loc_courlis[,date := as.date(date)]
+
+
+sum_courlis <- loc_courlis[,.(nb = .N,
+                              first = min(date),
+                              last = max(date)), by =.(bird_id)]
+
+
+
+
 
 
