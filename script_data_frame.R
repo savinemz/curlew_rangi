@@ -67,6 +67,15 @@ sum_loc$date <- substr(sum_loc$timestamp,1,10)
 
 
 
+
+
+
+
+
+
+
+
+
 library(data.table)
 setDT(sum_loc)
 sum_loc <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id,date)][,.(occurence = .N),by=.(id_poly)]
@@ -117,7 +126,6 @@ rangi_DT[,proportion := as.numeric(proportion)]
 d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
 
 
-
 # graphique = proportion moyenne des habitats en fonction de l'occupation des motus (T, F) par habitat
 library(ggplot2); library(units)
 
@@ -140,7 +148,27 @@ gg
 
 
 
+
+
+
+
+
+
+
+
+
+
+# realisation de l'APC avec la librairie FactoMineR
+library("FactoMineR")
+library("factoextra")
+library(ade4)
+
+
+
 #creation tableur pour l'ouverture des donnees numeriques => ACP
+rangi_DT[,area_poly := as.numeric(area_poly)]
+rangi_DT[,area_motu := as.numeric(area_motu)]
+
 library(tidyr)
 rangi_PCA <- rangi_DT[,-c(1,4,6,7,8,9)]
 rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
@@ -150,56 +178,7 @@ row.names (rangi_PCA) <- rangi_PCA$id_motu
 rangi_PCA <- rangi_PCA[,-1]
 rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
 
-
-#library(tidyr)
-#rangi_PCAs <- rangi_DT[,-c(1,4,5,6,8,9)]
-#rangi_PCAs <-pivot_wider(rangi_PCAs, names_from = "habitat",
-                        #values_from = "proportion")
-#rangi_PCAs[is.na(rangi_PCAs) == T] <- 0
-#row.names (rangi_PCAs) <- rangi_PCAs$id_motu
-#rangi_PCAs <- rangi_PCAs[,-1]
-#rangi_PCAs <- rangi_PCAs[,-c(1,2,3,4)]
-
-
-
-# realisation de l'APC avec la librairie FactoMineR
-library("FactoMineR")
-library("factoextra")
-library(ade4)
-
 ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
-#ACP <- print(rangi_PCA)
-#ACP <- dudi.pca(rangi_PCA)
-
-#ACPs <- PCA(rangi_PCAs, scale.unit = TRUE, ncp = 5, graph = TRUE)
-#ACPs <- print(rangi_PCAs)
-#ACPs <- dudi.pca(rangi_PCAs)
-
-ACP$var
-#str(ACP)
-# coord: Coordonnées
-# Cos2: qualité de répresentation
-# contrib: Contributions aux composantes principales
-
-# extraction des valeurs propres et la proportion de variances retenues par les composantes principales
-eig.val <- get_eigenvalue(ACP)
-eig.val
-
-
-            #Dim1,2>1 = les composantes principales (PC) concernée représentent 
-            #plus de variance par rapport à une seule variable d'origine,lorsque les données sont standardisées.
-            # eigenvalue>1 est généralement utilisé comme seuil à partir duquel les PC sont conservés.
-
-
-# graphique des valeurs propres
-plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 70))
-plot_eigenvalue
-
-#extraction des résultats
-#var <- get_pca_var(ACP)
-#var
-
-
 
 # graphique de corrélation des variables
 fviz_pca_var(ACP, col.var = "contrib",
@@ -215,26 +194,34 @@ fviz_pca_var(ACP, col.var = "contrib",
             #Les variables qui sont loin de l'origine sont bien représentées par l'ACP.
 
 
+ACP$var
+#str(ACP)
+# coord: Coordonnées
+# Cos2: qualité de répresentation
+# contrib: Contributions aux composantes principales
+
+# extraction des valeurs propres et la proportion de variances retenues par les composantes principales
+eig.val <- get_eigenvalue(ACP)
+eig.val
+            #Dim1,2>1 = les composantes principales (PC) concernée représentent + de 80% de la variance
+            # eigenvalue>1 est généralement utilisé comme seuil à partir duquel les PC sont conservés.
+
+
+# graphique des valeurs propres
+plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 70))
+plot_eigenvalue
+
+
 #library("corrplot")
-#corrplot(var$cos2, is.corr=FALSE)
-
-# Cos2 total des variables sur Dim.1 et Dim.2
-fviz_cos2(ACP, choice = "var", axes = 1:2)
-            #bonne representation de la variable reef
-            #moins bonne representation de la variable foret clairsemee
-
-
-library("corrplot")
-corrplot(var$contrib, is.corr=FALSE)
+#corrplot(var$contrib, is.corr=FALSE)
 
 # Contributions des variables à PC1
 fviz_contrib(ACP, choice = "var", axes = 1, top = 10)
 # Contributions des variables à PC2
 fviz_contrib(ACP, choice = "var", axes = 2, top = 10)
 # La contribution totale à PC1 et PC2
-fviz_contrib(ACP, choice = "var", axes = 1:2, top = 10)
-            #reef et dense_forest ont une contribution supérieure au seuil (ligne en pointillé rouge)
-            #ces variables peuvent être considérée comme importantes pour contribuer à la composante?
+#fviz_contrib(ACP, choice = "var", axes = 1:2, top = 10)
+
 
 
 # visualisation des motus en fonction de cos2
@@ -251,30 +238,88 @@ fviz_pca_ind(ACP, col.ind="coord", geom = "point", pointsize = 3) +
   scale_color_gradient2(low="white", mid="blue", high="red", midpoint=0.6, space = "Lab")+ theme_minimal()
 
 
+            #ACP avec proportion = resultats foireux
+#rangi_PCAs <- rangi_DT[,-c(1,4,5,6,8,9)]
+#rangi_PCAs <-pivot_wider(rangi_PCAs, names_from = "habitat",
+                        #values_from = "proportion")
+#rangi_PCAs[is.na(rangi_PCAs) == T] <- 0
+#row.names (rangi_PCAs) <- rangi_PCAs$id_motu
+#rangi_PCAs <- rangi_PCAs[,-1]
+#rangi_PCAs <- rangi_PCAs[,-c(1,2,3,4)]
+
+#ACPs <- PCA(rangi_PCAs, scale.unit = TRUE, ncp = 5, graph = TRUE)
 
 
 
 
-library(tidyr)
-rangi_PCAm <- rangi_DT[,-c(1,4,5,7,8,9)]
-rangi_PCAm <-pivot_wider(rangi_PCAm, names_from = "habitat",
-                        values_from = "area_motu")
-rangi_PCAm[is.na(rangi_PCAm) == T] <- 0
-row.names (rangi_PCAm) <- rangi_PCAm$id_motu
-rangi_PCAm <- rangi_PCAm[,-1]
-rangi_PCAm <- rangi_PCAm[,-c(1,2,3,4)]
 
 
-library("FactoMineR")
-library("factoextra")
-library(ade4)
-
-ACPm <- PCA(rangi_PCAm, scale.unit = TRUE, ncp = 5, graph = TRUE)
 
 
-fviz_pca_var(ACPm, col.var = "contrib",
-             gradient.cols = c("blue", "yellow", "red"),
-             legend.title = "Contrib_var",
-             geom.ind = "point",
-             repel = TRUE
-)
+
+
+
+
+
+
+#Description du jeu de données
+
+
+#Distribution des localisations par habitat
+
+loc_courlis <- read.csv("localisation_courlis/courlis.csv")
+loc_courlis <- subset(loc_courlis,location_long < 0)
+
+
+courlis_sf <- st_as_sf(loc_courlis, coords = c("location_long","location_lat"))
+st_crs(courlis_sf) <- 4326
+courlis_sf <- st_transform(courlis_sf,crs=3832)
+sum_loc <- st_intersection(rangi, courlis_sf)
+
+distri_loc_hab <- sum_loc[,-c(1,2,4,5,7,8,9,10,11,12,13,15)]
+distri_loc_hab <- distri_loc_hab %>% relocate(habitat, .after = bird_id)
+distri_loc_hab <- distri_loc_hab %>% relocate(proportion, .after = habitat)
+
+
+
+# preparation tableau occurence par habitat
+
+
+library(data.table)
+setDT(distri_loc_hab)
+tab_hab <- distri_loc_hab[,.(nb = .N),by=.(bird_id,habitat)]#.N = nombre de
+tab_hab <- tab_hab[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
+
+
+# area_habitat (habitat_ha reference proportion)
+area_habitat <- aggregate(area_poly~habitat, rangi, sum)
+area_habitat$proportion <- area_habitat$area_poly/sum(area_habitat$area_poly)
+area_habitat <- area_habitat[,-c(2)]
+setDT(area_habitat)
+area_habitat[,bird_id := "habitat"]
+area_habitat[,nb := as.numeric(proportion)]
+area_habitat <- area_habitat[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
+
+setcolorder(area_habitat,c("bird_id","habitat","nb"))
+
+
+tab_hab <- bind_rows(tab_hab, area_habitat)
+
+tab_fill  <- read.csv("library/colour_habitat.csv")
+vec_fill <- tab_fill$colour
+names(vec_fill) <- tab_fill$habitat
+
+
+tab_bird <- distri_loc_hab[,.(nb = .N),by=bird_id]
+tab_bird[,label := paste0(bird_id," (",nb,")")]
+
+setDF(distri_loc_hab)
+
+ggdistrib <- ggplot(data = tab_hab,aes(x = nb, y = bird_id, fill = habitat))
+ggdistrib <- ggdistrib + geom_bar( colour = NA, stat="identity", position = "fill")
+ggdistrib <- ggdistrib + scale_fill_manual(values = vec_fill)
+ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat",tab_bird[,bird_id]),labels= c("habitat",tab_bird[,label]))
+ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
+ggdistrib
+
+

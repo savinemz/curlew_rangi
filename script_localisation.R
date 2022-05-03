@@ -6,7 +6,7 @@ library(ggplot2)
                                         # [RL] je te conseil des nom d'objet plus court
                                         # il faut qu'ils soient le plus court possible tout en restant comprehenssible
                                         # ici d, data, courlis serai des bon candidats
-localisation_courlis <- read.csv("data/courlis.csv")
+localisation_courlis <- read.csv("localisation_courlis/courlis.csv")
 
 ## il y a une donnes pourri on nettoie
 localisation_courlis <- subset(localisation_courlis,location_long < 0)
@@ -93,21 +93,4 @@ gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
 ggsave("output/fig_courlis_lagon_bleu.png",gg)
 
-##
-##library(sf)
-##land <- st_read("SIG/land_complet.shp")
-##land <- st_make_valid(land)
-##
-##
-##
-##ggplot(data = localisation_courlis) +
-##  ggplot2::geom_sf(data = land) +
-##  geom_point(aes(x = location_long,
-##                 y = location_lat,
-##                 color = "red"),
-##             alpha = .3) +
-##  labs(color = "red") +
-##  theme_bw() +
-##  coord_sf(xlim = c(-120, -180),ylim = c(30,-20), expand = FALSE) +
-##  theme_bw()
-##
+
