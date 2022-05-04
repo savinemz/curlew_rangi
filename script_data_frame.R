@@ -341,25 +341,55 @@ ggdistrib
 
 
 
-#Description du jeu de données
 
+
+
+
+
+
+
+
+
+
+
+#Description du jeu de données
 #nb de donnée par oiseau, le nombre de jour de données par oiseau, la différence de temps entre la première et la dernière données
 
 
-rangi_DT[,area_poly := as.numeric(area_poly)]
+loc_courlis <- read.csv("localisation_courlis/courlis.csv")
+loc_courlis <- subset(loc_courlis,location_long < 0)
+loc_courlis$date <- substr(loc_courlis$timestamp,1,10)
 
-
-
-date:=as.Date(date)
-loc_courlis[,date := as.date(date)]
-
-
-sum_courlis <- loc_courlis[,.(nb = .N,
+library(data.table)
+setDT(loc_courlis)
+sum_courlis <- loc_courlis[,.(nb_data = .N,
                               first = min(date),
-                              last = max(date)), by =.(bird_id)]
+                              last = max(date)), by =.(bird_id)] # par oiseau: combien de données, premiere date et derniere date
+
+sum_courlis[,duration_days := difftime(last, first, unit = "days")]#difference de temps entre la premiere et la derniere donnee. le ":=" veut dire pas de regroupement
+
+nb_day <- loc_courlis [,.(j = 1), by = .(bird_id, date)] # regroupement par oiseau et par date pour garde une ligne par oiseau et par date
+nb_day <- nb_day [,.(nb_day= .N), by = .(bird_id)] # nombre de jour de données 
+sum_courlis <- merge(sum_courlis, nb_day, bx = "bird_id")
 
 
 
+#stat sur les donnees par jour par oiseau
+nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date)]
+mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par jour = 3 en arrondissant
+min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par jour = 1
+max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par jour = 9
 
+
+#stat sur les donnees sum_courlis
+nb_data_tot <- sum(sum_courlis$nb_data)# 2911 donnees
+
+median_nb_data <- median(sum_courlis$nb_data)# mediane du nombre de data par oiseau = 191
+mean_nb_data <- mean(sum_courlis$nb_data)# nombre moyen de data par oiseau = 291
+min_nb_data <- min(sum_courlis$nb_data) # le plus petit nombre de data = 2
+max_nb_data <- max(sum_courlis$nb_data) # le plus grand nombre de data = 635
+
+min_data_date <- min(sum_courlis$last)# gps a arreté d'emettre des le premier jour
+max_data_date <- max(sum_courlis$last)# donnee emise au maximum pendant 6 mois
 
 
