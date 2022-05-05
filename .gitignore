@@ -51,3 +51,5 @@ data/
 output/*
 !output/.gitkeep
 *.csv~
+*.r~
+*.R#
