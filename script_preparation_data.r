@@ -24,4 +24,5 @@ source("functions/fun_daynight.r")
 dd <- setDF(d)
 d <- daynight(dd, colname_datetime = "datetime",colname_date = "date", colname_latitude = "location_lat", colname_longitude = "location_long")
 
+fwrite(d,"data/courlis_all_daynight.csv")
 
