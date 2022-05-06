@@ -351,11 +351,63 @@ ggdistrib
 
 
 
+# Analyse daynight
+courlis_all_daynight <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
+courlis_all_daynight <- subset(courlis_all_daynight,location_long < 0)
+daynight_sf <- st_as_sf(courlis_all_daynight, coords = c("location_long","location_lat"))
+st_crs(daynight_sf) <- 4326
+daynight_sf <- st_transform(daynight_sf,crs=3832)
+sum_daynight <- st_intersection(rangi, daynight_sf)
+
+
+distri_daynight <- sum_daynight[,-c(1,2,4,5,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,24,25,26)]
+distri_daynight <- distri_daynight %>% relocate(habitat, .after = bird_id)
+distri_daynight <- distri_daynight %>% relocate(proportion, .after = habitat)
+distri_daynight <- subset(distri_daynight, distri_daynight$bird_id != "C27")
+distri_daynight <- subset(distri_daynight, distri_daynight$bird_id != "C32")
+distri_daynight <- subset(distri_daynight, distri_daynight$bird_id != "C33")
+distri_daynight <- subset(distri_daynight, distri_daynight$bird_id != "C34")
+distri_daynight <- subset(distri_daynight, distri_daynight$bird_id != "C40")
+
+
+library(data.table)
+setDT(distri_daynight)
+tab_daynight <- distri_daynight[,.(nb = .N),by=.(bird_id,habitat,day_night)]
+tab_daynight <- tab_daynight[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
+
+tab_hab <- bind_rows(tab_hab, tab_daynight)
+
+
+ggdistrib <- ggplot(data = tab_hab,aes(x = nb, y = bird_id, fill = habitat))
+ggdistrib <- ggdistrib + geom_bar( colour = NA, stat="identity", position = "fill")
+ggdistrib <- ggdistrib + scale_fill_manual(values = vec_fill)
+ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat_motu_occupe", "habitat",tab_bird[,bird_id]),labels= c("habitat_motu_occupe", "habitat",tab_bird[,label]))
+ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
+#ggdistrib <- ggdistrib + facet_grid()
+ggdistrib
+
+
+
+
+
+
+
+
+
+#enlever les donnees C4 et C9
+area_habitat <- area_habitat[ !(bird_id %in% c("C09","C04")),]
+#il faut encore modifier l'objet pour savoir à partir d'où je supprime
+
+
+
+
+
+
 
 #Description du jeu de données
 #nb de donnée par oiseau, le nombre de jour de données par oiseau, la différence de temps entre la première et la dernière données
 
-
+#creation d'un tableau de donnee
 loc_courlis <- read.csv("localisation_courlis/courlis.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
 loc_courlis$date <- substr(loc_courlis$timestamp,1,10)
@@ -393,3 +445,27 @@ min_data_date <- min(sum_courlis$last)# gps a arreté d'emettre des le premier jo
 max_data_date <- max(sum_courlis$last)# donnee emise au maximum pendant 6 mois
 
 
+
+
+
+
+# le nombre de courlis par motus
+setDT(sum_loc)
+nb_bird_motu <- sum_loc [,.(j = 1), by = .(bird_id, id_motu)] # regroupement par oiseau et par motu
+nb_bird_motu <- nb_bird_motu [,.(nb_bird_motu= .N), by = .(id_motu)] #nombre d'oiseau par motu
+#représenter le resultat sur une carte avec un gradient de couleur selon le nombre d'oiseau par motu
+
+
+#graph nombre courlis par motus
+library(sf)
+land <- st_read("SIG/land.shp")
+land <- st_transform(land,crs=3832)
+land <- st_make_valid(land)
+land_lb <- st_intersection(land,st_buffer(st_union(rangi),1000))
+
+
+ggb <- ggplot()
+ggb <- ggb + geom_sf(data = land_lb)
+ggb <- ggb + geom_sf(data = nb_bird_motu,aes(fill= ),colour=NA,alpha=.7)
+ggb <-
+ggb
