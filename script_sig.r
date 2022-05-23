@@ -45,7 +45,8 @@ hh <- st_as_sf(st_union(hh))
 
 l_shp$shallow  <-  st_difference(l_shp$atoll,hh)
 l_shp$shallow$habitat  <-  "shallow"
-
+l_shp$shallow <- st_cast(l_shp$shallow, "POLYGON")
+l_shp$shallow <- st_make_valid(l_shp$shallow)
 
 
 
@@ -58,6 +59,8 @@ shp_loc <-  st_difference(land,shp_loc)
 shp_loc  <- st_as_sf(st_union(shp_loc))
 shp_loc$habitat  <-  "beach"
 l_shp$beach <- shp_loc
+l_shp$beach <- st_cast(l_shp$beach, "POLYGON")
+l_shp$beach <- st_make_valid(l_shp$beach)
 
 
 shp_loc_1 <- st_union(l_shp$bush,l_shp$forest_dense)
@@ -66,18 +69,23 @@ shp_loc <- st_union(shp_loc,l_shp$mudflat)
 l_shp$reef  <-  st_difference(l_shp$reef_buffer,shp_loc)
 l_shp$reef <- l_shp$reef[,c("habitat")]
 l_shp$reef$habitat <- "reef"
+l_shp$reef <- st_cast(l_shp$reef, "POLYGON")
+l_shp$reef <- st_make_valid(l_shp$reef)
 
 
 shp_loc <- st_union(shp_loc_1,l_shp$mudflat)
 l_shp$sparse_forest  <-  st_difference(l_shp$forest_clairseme_buffer,shp_loc )
 l_shp$sparse_forest <- l_shp$sparse_forest[,c("habitat")]
 l_shp$sparse_forest$habitat <- "sparse_forest"
-
+l_shp$sparse_forest <- st_cast(l_shp$sparse_forest, "POLYGON")
+l_shp$sparse_forest <- st_make_valid(l_shp$sparse_forest)
 
 shp_loc <- st_union(l_shp$sparse_forest,l_shp$forest_dense)
 l_shp$rocks  <-  st_difference(l_shp$rocks,shp_loc )
 l_shp$rocks <- l_shp$rocks[,c("habitat")]
 l_shp$rocks$habitat <- "rocks"
+l_shp$rocks <- st_cast(l_shp$rocks, "POLYGON")
+l_shp$rocks <- st_make_valid(l_shp$rocks)
 
 
 shp_loc <- st_union(l_shp$reef,l_shp$forest_dense)
@@ -85,8 +93,12 @@ shp_loc <- st_union(shp_loc,l_shp$sparse_forest)
 shp_loc <- st_union(shp_loc,l_shp$rocks)
 l_shp$bush  <-  st_difference(l_shp$bush,shp_loc)
 l_shp$bush <- l_shp$bush[,c("habitat")]
+l_shp$bush <- st_cast(l_shp$bush, "POLYGON")
+l_shp$bush <- st_make_valid(l_shp$bush)
 
 l_shp$dense_forest <- l_shp$forest_dense
+l_shp$dense_forest <- st_cast(l_shp$dense_forest, "POLYGON")
+l_shp$dense_forest <- st_make_valid(l_shp$dense_forest)
 
 vec_habitat <-c("bush","sparse_forest","dense_forest","mudflat","reef","rocks","beach")
 
@@ -117,7 +129,14 @@ for(h in vec_habitat_atoll) {
 
 
 plot(rangi_atoll)
-
+rangi_atoll <- st_cast(rangi_atoll, to = "POLYGON")
 rangi_atoll <- st_make_valid(rangi_atoll)
 
 st_write(rangi_atoll, "SIG/rangi.shp")
+
+st_write(rangi, "SIG/rangi_atoll.shp")
+
+plot(l_shp$sparse_forest)
+
+l_shp$sparse_forest
+str(l_shp)

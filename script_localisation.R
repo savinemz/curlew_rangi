@@ -93,4 +93,11 @@ gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
 ggsave("output/fig_courlis_lagon_bleu.png",gg)
 
-
+#carte à 1km du LB sans les donnees gps
+gg <- ggplot()
+gg <- gg + geom_sf(data = land_lb)
+gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.7)
+gg <- gg + scale_fill_manual(values=vec_fill)
+gg <- gg + theme_bw() + labs(colour = "",fill="")
+gg
+ggsave("Rplot/fig_courlis_LB_sansbird.png",gg)

@@ -39,6 +39,31 @@ rangi <- rangi %>% relocate(proportion, .after = area_motu)
 
 
 
+#Analyse des donnees quantitative des motus
+rangi_quanti <- rangi
+rangi_quanti <- subset(rangi_quanti, rangi_quanti$id_motu != "0")
+
+area_motu_quanti <- area_motu
+area_motu_quanti <- subset(area_motu_quanti, area_motu_quanti$id_motu != "0")
+
+mean_area_motu <- mean(area_motu_quanti$area_motu)
+min_area_motu <- min(area_motu_quanti$area_motu)
+max_area_motu <- max(area_motu_quanti$area_motu)
+
+
+nb_hab_motus <- rangi_quanti[,.(nb_hab_motus = .N), by = .(id_motu)]
+mean_nb_hab_motu <- mean (nb_hab_motus$nb_hab_motus)
+min_nb_hab_motu <- min(nb_hab_motus$nb_hab_motus)
+max_nb_hab_motu <- max(nb_hab_motus$nb_hab_motus)
+
+
+
+
+
+
+
+
+
 
 ### Analyse des donnees courlis
 # localisation des courlis par polygone
@@ -68,16 +93,18 @@ sum_loc <- st_intersection(rangi, courlis_sf)
 setDT(loc_courlis)
 nb_data_HH <- loc_courlis [,.(nb_data_HH = .N), by = .(bird_id, date_HH)]
 nb_data_HH[,nb_data_HH := as.numeric(nb_data_HH)]
-bp <- boxplot (nb_data_HH$nb_data_HH ~ nb_data_HH$bird_id)
-hist(nb_data_HH$nb_data_HH)
+#bp <- boxplot (nb_data_HH$nb_data_HH ~ nb_data_HH$bird_id)
 
+
+#graphique nombre de données par heure par oiseaux
 library(ggplot2)
 gg <- ggplot(nb_data_HH,aes(x=nb_data_HH,y=bird_id)) + geom_violin()
+gg <- gg + labs(y = "Bird_id", x = "Number of data per hour")
 gg
+ggsave("Rplot/nb_data_HH.png",gg)
 
-
-gg <- ggplot(nb_data_HH,aes(x=nb_data_HH)) + geom_histogram() + facet_grid(bird_id~.)
-gg
+#gg <- ggplot(nb_data_HH,aes(x=nb_data_HH)) + geom_histogram() + facet_grid(bird_id~.)
+#gg
 
 
 
@@ -111,13 +138,13 @@ sum_courlis_daynight <- loc_courlis[,.(nb_data = .N), by =.(bird_id, day_night)]
 fwrite(sum_courlis_daynight, "table/sum_courlis_daynight.csv")
 
 
-#stat sur les donnees par jour par oiseau
-#nombre de donnees par oiseau et par jour
-nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date)]
+#stat sur les donnees par heure par oiseau
+#nombre de donnees par oiseau et par heure
+nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date, date_HH)]
 
-mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par jour = 3 en arrondissant
-min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par jour = 1
-max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par jour = 9
+mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par heure = 2 en arrondissant
+min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par heure = 1
+max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par heure = 4
 
 
 #nombre de donnees par oiseau par jour par J/N
@@ -216,18 +243,19 @@ d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),i
 library(ggplot2); library(units)
 
 #graphique + chgmt couleur par occupation avec intervalles 95%
-gg2 <-    ggplot(data = d_gg, aes(x = habitat, y = prop_mean, fill = occupation, group = occupation)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_errorbar(aes(ymin = inf95, ymax = sup95), width = 0.5,alpha=.5,size=1) +
-  scale_fill_brewer(palette="Paired") + theme_minimal()
-gg2
+#gg2 <-    ggplot(data = d_gg, aes(x = habitat, y = prop_mean, fill = occupation, group = occupation)) +
+  #geom_bar(stat = "identity", position = "dodge") +
+  #geom_errorbar(aes(ymin = inf95, ymax = sup95), width = 0.5,alpha=.5,size=1) +
+  #scale_fill_brewer(palette="Paired") + theme_minimal()
+#gg2
 
 #graphique RL
 gg <- ggplot(data = d_gg, aes(x = habitat, y = prop_mean,fill = occupation,colour=occupation,group=occupation))
 gg <- gg + geom_errorbar(aes(ymin = inf95, ymax = sup95),width = 0.5,alpha=.5,size=1)
 gg <- gg +  geom_point(alpha=.8,size=2)
+gg <- gg + labs(y = "Proportion mean", x = "Habitats")
 gg
-
+ggsave("Rplot/prop_mean.png",gg)
 
 
 
@@ -269,7 +297,7 @@ ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
 # graphique de corrélation des variables
 fviz_pca_var(ACP, col.var = "contrib",
              gradient.cols = c("blue", "yellow", "red"),
-             legend.title = "Contrib_var",
+             legend.title = "variable contribution",
              geom.ind = "point",
              repel = TRUE
 )
@@ -410,7 +438,7 @@ ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat_motu_occupe", "hab
 ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
 ggdistrib
 
-
+ggsave("Rplot/distrib_loc.png",gg)
 
 
 
@@ -510,7 +538,7 @@ ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
 ggdistrib
 
 
-
+ggsave("Rplot/distrib_loc_jn.png",ggdistrib)
 
 
 
