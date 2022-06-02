@@ -38,7 +38,8 @@ courlis_sf <- st_as_sf(localisation_courlis, coords = c("location_long","locatio
 st_crs(courlis_sf) <- 4326 # c'est pour WGS84
 courlis_sf <- st_transform(courlis_sf,crs=3832)
 
-rangi <- st_read("SIG/rangi.shp")
+rangi <- st_read("SIG/rangi_atoll.shp")
+rangi <- rangi[,-3]
 
 ## data a 100km du lagon bleu
 land_wide <- st_intersection(land,st_buffer(st_union(rangi),100000))
@@ -91,7 +92,7 @@ gg <- gg + scale_fill_manual(values=vec_fill)
 gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),shape =21,fill="white",size=1)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
-ggsave("output/fig_courlis_lagon_bleu.png",gg)
+ggsave("Rplot/fig_courlis_lagon_bleu2.png",gg)
 
 #carte à 1km du LB sans les donnees gps
 gg <- ggplot()
@@ -100,4 +101,4 @@ gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.7)
 gg <- gg + scale_fill_manual(values=vec_fill)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
-ggsave("Rplot/fig_courlis_LB_sansbird.png",gg)
+ggsave("Rplot/fig_courlis_LB_sansbird2.png",gg)
