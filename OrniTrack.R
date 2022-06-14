@@ -3,7 +3,7 @@ library(data.table)
 
 
 #calculs des surfaces par polygones
-rangi <- st_read("SIG/rangi_atoll.shp")
+rangi <- st_read("SIG/rangi_motu.shp")
 rangi <- rangi[,-3]
 rangi$area_poly <- st_area(rangi)
 
@@ -56,19 +56,24 @@ rangi <- rangi %>% relocate(proportion, .after = area_motu)
 
 
 
-## Analyse des donnees courlis ############################################################################################################################
+## Analyse des donnees courlis OrniTrack ############################################################################################################################
 
 #localisation des courlis
 loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
 
+# Suppression des donnees ICARUS
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C01")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C03")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C04")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C05")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C06")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C07")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C08")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C11")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C12")
 
-# # Suppression des donnees OrniTrack
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C27")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C32")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C33")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C34")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C40")
 
 
 ## ajout de la colonne date (directement par RL dans les nouvelles donnees) et la colonne heure manuellement
@@ -96,7 +101,7 @@ library(ggplot2)
 gg <- ggplot(nb_data_HH,aes(x=nb_data_HH,y=bird_id)) + geom_violin()
 gg <- gg + labs(y = "Bird_id", x = "Number of data per hour")
 gg
-#ggsave("Rplot/nb_data_HH.png",gg)
+#ggsave("Rplot/OrniTrack/nb_data_HH.png",gg)
 
 #gg <- ggplot(nb_data_HH,aes(x=nb_data_HH)) + geom_histogram() + facet_grid(bird_id~.)
 #gg
@@ -124,21 +129,21 @@ sum_courlis[,duration_days := difftime(last, first, unit = "days")]#difference d
 nb_day <- loc_courlis [,.(j = 1), by = .(bird_id, date)] # regroupement par oiseau et par date
 nb_day <- nb_day [,.(nb_day= .N), by = .(bird_id)] # nombre de jour de données 
 sum_courlis <- merge(sum_courlis, nb_day, bx = "bird_id")
-fwrite(sum_courlis, "table/sum_courlis_ICARUS.csv")
+#fwrite(sum_courlis, "table/sum_courlis_OrniTrack.csv")
 
 
 #nombre de donnees par oiseau par J/N
-sum_courlis_daynight <- loc_courlis[,.(nb_data = .N), by =.(bird_id, day_night)]
-fwrite(sum_courlis_daynight, "table/sum_courlis_daynight.csv")
+#sum_courlis_daynight <- loc_courlis[,.(nb_data = .N), by =.(bird_id, day_night)]
+#fwrite(sum_courlis_daynight, "table/sum_courlis_daynight.csv")
 
 
 #stat sur les donnees par heure par oiseau
 #nombre de donnees par oiseau et par jour et par heure
-nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date, date_HH)]
+#nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date, date_HH)]
 
-mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par heure = 2 en arrondissant
-min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par heure = 1
-max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par heure = 4
+#mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par heure = 2 en arrondissant
+#min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par heure = 1
+#max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par heure = 4
 
 
 
@@ -158,24 +163,24 @@ gg <- gg + facet_grid(bird_id~.)
 gg <- gg + geom_point(data = subset(nb_data_j_daynight, nb_data_jour == 0), colour = "white", size = 0.8, alpha = 0.5)
 gg <- gg + labs(x= "week", y= "number of localisation per week")
 gg
-#ggsave("Rplot/nb_data_daynight.png",gg)
+#ggsave("Rplot/OrniTrack/nb_data_daynight.png",gg)
 
 
 #suppression de l'individu C09 (donnees insuffisantes)
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
-courlis_sf <- subset(courlis_sf, courlis_sf$bird_id != "C09")
-sum_loc <- subset(sum_loc, sum_loc$bird_id != "C09")
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+#courlis_sf <- subset(courlis_sf, courlis_sf$bird_id != "C09")
+#sum_loc <- subset(sum_loc, sum_loc$bird_id != "C09")
 
 #stat sur les donnees sum_courlis
-nb_data_tot <- sum(sum_courlis$nb_data)# 2911 donnees
+#nb_data_tot <- sum(sum_courlis$nb_data)# 2911 donnees
 
-median_nb_data <- median(sum_courlis$nb_data)# mediane du nombre de data par oiseau = 191
-mean_nb_data <- mean(sum_courlis$nb_data)# nombre moyen de data par oiseau = 291
-min_nb_data <- min(sum_courlis$nb_data) # le plus petit nombre de data = 2
-max_nb_data <- max(sum_courlis$nb_data) # le plus grand nombre de data = 635
+#median_nb_data <- median(sum_courlis$nb_data)# mediane du nombre de data par oiseau = 191
+#mean_nb_data <- mean(sum_courlis$nb_data)# nombre moyen de data par oiseau = 291
+#min_nb_data <- min(sum_courlis$nb_data) # le plus petit nombre de data = 2
+#max_nb_data <- max(sum_courlis$nb_data) # le plus grand nombre de data = 635
 
-min_data_date <- min(sum_courlis$last)# gps a arreté d'emettre des le premier jour
-max_data_date <- max(sum_courlis$last)# donnee emise au maximum pendant 6 mois
+#min_data_date <- min(sum_courlis$last)# gps a arreté d'emettre des le premier jour
+#max_data_date <- max(sum_courlis$last)# donnee emise au maximum pendant 6 mois
 
 
 
@@ -189,7 +194,7 @@ library(data.table)
 #Trie des donnees
 # regroupement du nombre d'occurence par polygone, par oiseau, par jour et par heure
 setDT(sum_loc)
-sum_loc_poly <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id,date_HH)][,.(occurence = .N),by=.(id_poly)]
+sum_loc_poly <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id)][,.(occurence = .N),by=.(id_poly)]
 
 rangi <- merge(rangi, sum_loc_poly, bx = "id_poly", all.x = T)
 rangi$occurence[is.na(rangi$occurence)] <- 0
@@ -233,7 +238,6 @@ rangi_DT[,occupation := occurence>0]
 ## la methode en une ligne de RL
 rangi_DT[,proportion := as.numeric(proportion)]
 d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
-d_gg <- d_gg[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
 
 
 
@@ -244,7 +248,7 @@ gg <- gg + geom_errorbar(aes(ymin = inf95, ymax = sup95),width = 0.5,alpha=.5,si
 gg <- gg +  geom_point(alpha=.8,size=2)
 gg <- gg + labs(y = "Proportion mean", x = "Habitats")
 gg
-#ggsave("Rplot/prop_mean2.png",gg)
+ggsave("Rplot/OrniTrack/prop_mean.png",gg)
 
 
 
@@ -319,9 +323,7 @@ ggdistrib <- ggdistrib + scale_fill_manual(values = vec_fill)
 ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat_motu_occupe", "habitat",tab_bird[,bird_id]),labels= c("habitat_motu_occupe", "habitat",tab_bird[,label]))
 ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
 ggdistrib
-
-#ggsave("Rplot/distrib_loc.png",gg)
-
+#ggsave("Rplot/OrniTrack/distrib_loc.png",gg)
 
 
 
@@ -428,7 +430,7 @@ rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
 rangi_PCA[is.na(rangi_PCA) == T] <- 0
 row.names (rangi_PCA) <- rangi_PCA$id_motu
 rangi_PCA <- rangi_PCA[,-1]
-rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
+#rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
 
 ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
 
@@ -505,6 +507,7 @@ rangi_rat <- rangi_rat %>% relocate(occurence, .after = habitat)
 
 
 
+
 ## GLMM (Icarus) ###################################################################################################################################################
 
 
@@ -558,13 +561,6 @@ tab_glmm[,rats := as.factor(rat == 1)]
 library(glmm)
 library(glmmTMB)
 glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm[habitat != "mudflat",])
-sglmm <- summary(glmm)
-print(sglmm)
-
-
-library(glmm)
-library(glmmTMB)
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + rats*habitat + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm[habitat != "mudflat",])
 sglmm <- summary(glmm)
 print(sglmm)
 

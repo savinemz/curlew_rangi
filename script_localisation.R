@@ -1,63 +1,73 @@
 
-# carte localisation des courlis sur les motus avec couche land
+
 library(ggplot2)
-# localisation_courlis <- read.table("localisation_courlis/courlis.csv", sep=",", header=T)
 
-                                        # [RL] je te conseil des nom d'objet plus court
-                                        # il faut qu'ils soient le plus court possible tout en restant comprehenssible
-                                        # ici d, data, courlis serai des bon candidats
-localisation_courlis <- read.csv("localisation_courlis/courlis.csv")
+loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
+loc_courlis <- subset(loc_courlis,location_long < 0)
 
-## il y a une donnes pourri on nettoie
-localisation_courlis <- subset(localisation_courlis,location_long < 0)
+# Choix des individus que l'on veut etudier en fonction du type de balise
 
+# Balise OrniTrack
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C27")
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C32")
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C33")
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C34")
+#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C40")
+
+#Balise ICARUS
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C01")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C03")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C04")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C05")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C06")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C07")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C08")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C11")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C12")
+
+
+# Transformation des coordonnees en donnees spatiales + modification de la projection
+courlis_sf <- st_as_sf(loc_courlis, coords = c("location_long","location_lat"))
+st_crs(courlis_sf) <- 4326
+courlis_sf <- st_transform(courlis_sf,crs=3832)
+
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+courlis_sf <- subset(courlis_sf, courlis_sf$bird_id != "C09")
 
 
 library(sf)
 land <- st_read("SIG/land.shp")
-                                        # [RL] land n'est pas propre il faut la forcer a etre valide
 land <- st_make_valid(land)
-
-                                        # [RL] on a un difficulte avec nos donnees nous sommes dans le pacifique
-                                        # et donc si tu affiche des donnees qui ont des extente large
-                                        # tu croises la ligne de changement de jour 180° -180°
-                                        # ggplot (mais pas que lui) ne sais pas gérer ca
-                                        # si tu n'affiche que Rangiroa tu n'aura pas de probleme
-                                        # mais si tu affiche toutes les données courlis et surtout toute la couche land
-                                        # alors il faut que tu transforme la projection
-                                        # d'une maniere general comme tu va faire des calculs de surface
-                                        # il faut que tu reprojette tes données selon une projection qui conserve les distance
-                                        # ce n'est pas le cas de WGS84 qui conserve les angles mais pas les distances
-
-                                        # je te conseil la projecion EPSG 3832
-
 land <- st_transform(land,crs=3832)
 land <- st_make_valid(land)
-                                        # [RL] on transforme aussi les data courlis
-courlis_sf <- st_as_sf(localisation_courlis, coords = c("location_long","location_lat"))
-st_crs(courlis_sf) <- 4326 # c'est pour WGS84
-courlis_sf <- st_transform(courlis_sf,crs=3832)
 
-rangi <- st_read("SIG/rangi_atoll.shp")
-rangi <- rangi[,-3]
 
+
+
+## Catographie des zones emmergés : motus ##################################################################################################
+
+rangi <- st_read("SIG/rangi_motu.shp")
+
+### Carte a 100km du lagon bleu##########################################################################################
 ## data a 100km du lagon bleu
 land_wide <- st_intersection(land,st_buffer(st_union(rangi),100000))
 courlis_sf_wide <- st_intersection(courlis_sf,st_buffer(st_union(rangi),100000))
 
-## data a 10 km du lagon bleu
-land_close <- st_intersection(land,st_buffer(st_union(rangi),10000))
-courlis_sf_close <- st_intersection(courlis_sf,st_buffer(st_union(rangi),10000))
 
-
-
-# [RL] je te conseil de mettre ta figure dans un objet que tu agrementes de couche au fur et a mesure
 gg <- ggplot()
 gg <- gg + geom_sf(data = land_wide)
 gg <- gg + geom_sf(data = courlis_sf_wide,aes(colour=bird_id))
 gg <- gg + theme_bw() + labs(colour = "")
 gg
-ggsave("output/fig_courlis_wide.png",gg)
+#ggsave("output/fig_courlis_wide.png",gg)
+
+
+
+### Carte à 10km du lagon bleu ###############################################################################################
+## data a 10 km du lagon bleu
+land_close <- st_intersection(land,st_buffer(st_union(rangi),10000))
+courlis_sf_close <- st_intersection(courlis_sf,st_buffer(st_union(rangi),10000))
 
 
 tab_fill  <- read.csv("library/colour_habitat.csv")
@@ -71,34 +81,117 @@ gg <- gg + scale_fill_manual(values=vec_fill)
 gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),shape =21,fill="white",size=1)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
-ggsave("output/fig_courlis_close.png",gg)
+#ggsave("output/fig_courlis_close.png",gg)
 
 
 
-
-
-# carte localisation des courlis sur les motus avec couche land restreinte à la zone d'étude uniquement (lagon bleu)
-
-
+### Carte à 1km du lagon bleu #################################################################################################
 ## data a 1 km du lagon bleu
 land_lb <- st_intersection(land,st_buffer(st_union(rangi),1000))
 courlis_sf_lb <- st_intersection(courlis_sf,st_buffer(st_union(rangi),1000))
 
+#carte à 1km du Lagon Bleu localisations courlis
+gg <- ggplot()
+gg <- gg + geom_sf(data = land_lb)
+gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),size=1)
+gg <- gg + theme_bw() + labs(colour = "",fill="")
+gg <- gg + theme(legend.position = 'none')
+gg
+#ggsave("Rplot/fig_courlis_lagon_bleu3.png",gg)
 
+
+
+#carte à 1km du Lagon Bleu habitats
 gg <- ggplot()
 gg <- gg + geom_sf(data = land_lb)
 gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.7)
+gg <- gg + scale_fill_manual(values=vec_fill)
+gg <- gg + theme_bw() + labs(colour = "",fill="")
+gg <- gg + theme(legend.position = 'bottom')
+gg
+#ggsave("Rplot/fig_courlis_LB_sansbird3.png",gg, width = 6, height = 8)
+
+
+
+### Carte des rats au Lagon Bleu à 1km ####################################################################################
+rangi$rat_absence <- rangi$rat !=1
+
+gg <- ggplot()
+gg <- gg + geom_sf(data = rangi,aes(fill=rat_absence),colour=NA,alpha=1)
+gg <- gg + theme(legend.position = 'none')
+gg <- gg + theme_bw()
+gg
+#ggsave("Rplot/carte_rat.png",gg)
+
+
+
+
+
+
+
+
+
+
+## Catographies des zones emmergés + immergés = atoll #######################################################################################
+
+rangi <- st_read("SIG/rangi_atoll.shp")
+
+### Carte a 100km du lagon bleu##########################################################################################
+## data a 100km du lagon bleu
+land_wide <- st_intersection(land,st_buffer(st_union(rangi),100000))
+courlis_sf_wide <- st_intersection(courlis_sf,st_buffer(st_union(rangi),100000))
+
+gg <- ggplot()
+gg <- gg + geom_sf(data = land_wide)
+gg <- gg + geom_sf(data = courlis_sf_wide,aes(colour=bird_id))
+gg <- gg + theme_bw() + labs(colour = "")
+gg
+#ggsave("output/fig_courlis_wide.png",gg)
+
+
+
+### Carte à 10km du lagon bleu ###############################################################################################
+## data a 10 km du lagon bleu
+land_close <- st_intersection(land,st_buffer(st_union(rangi),10000))
+courlis_sf_close <- st_intersection(courlis_sf,st_buffer(st_union(rangi),10000))
+
+tab_fill  <- read.csv("library/colour_habitat.csv")
+vec_fill <- tab_fill$colour
+names(vec_fill) <- tab_fill$habitat
+
+gg <- ggplot()
+gg <- gg + geom_sf(data = land_close)
+gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.5)
 gg <- gg + scale_fill_manual(values=vec_fill)
 gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),shape =21,fill="white",size=1)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg
-ggsave("Rplot/fig_courlis_lagon_bleu2.png",gg)
+#ggsave("output/fig_courlis_close.png",gg)
 
-#carte à 1km du LB sans les donnees gps
+
+
+### Carte à 1km du lagon bleu #################################################################################################
+## data a 1 km du lagon bleu
+land_lb <- st_intersection(land,st_buffer(st_union(rangi),1000))
+courlis_sf_lb <- st_intersection(courlis_sf,st_buffer(st_union(rangi),1000))
+
+#carte à 1km du Lagon Bleu localisations courlis
 gg <- ggplot()
 gg <- gg + geom_sf(data = land_lb)
-gg <- gg + geom_sf(data = rangi,aes(fill=habitat),colour=NA,alpha=.7)
+gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),size=1)
+gg <- gg + theme_bw() + labs(colour = "",fill="")
+gg <- gg + theme(legend.position = 'none')
+gg
+#ggsave("Rplot/fig_courlis_lagon_bleu3.png",gg)
+
+
+#carte à 1km du Lagon Bleu habitats
+rangi_atol <- st_read("SIG/rangi_atoll.shp")
+gg <- ggplot()
+gg <- gg + geom_sf(data = land_lb)
+gg <- gg + geom_sf(data = rangi_atol,aes(fill=habitat),colour=NA,alpha=.7)
 gg <- gg + scale_fill_manual(values=vec_fill)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
+gg <- gg + theme(legend.position = 'bottom')
 gg
-ggsave("Rplot/fig_courlis_LB_sansbird2.png",gg)
+#ggsave("Rplot/fig_courlis_LB_sansbird3.png",gg, width = 6, height = 8)
