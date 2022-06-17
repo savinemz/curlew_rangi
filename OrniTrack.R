@@ -166,11 +166,6 @@ gg
 #ggsave("Rplot/OrniTrack/nb_data_daynight.png",gg)
 
 
-#suppression de l'individu C09 (donnees insuffisantes)
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
-#courlis_sf <- subset(courlis_sf, courlis_sf$bird_id != "C09")
-#sum_loc <- subset(sum_loc, sum_loc$bird_id != "C09")
-
 #stat sur les donnees sum_courlis
 #nb_data_tot <- sum(sum_courlis$nb_data)# 2911 donnees
 
@@ -207,35 +202,6 @@ setDT(rangi_DT)
 rangi_DT[,occupation := occurence>0]
 
 #creation d'un tableau a partir de rangi_DT
-#calcul prop_mean/habitat/occupation
-#prop_mean <- aggregate(proportion~habitat + occupation, rangi_DT, mean)
-#names(prop_mean)[3] <- "prop_mean"
-
-#solution qui marche aussi
-#rangi_prop_mean <- aggregate(rangi_DT$proportion, by=list("habitat"=rangi_DT$habitat, "occupation"=rangi_DT$occupation), FUN=mean)
-
-
-#calcul prop_med/habitat/occupation
-#prop_med <- aggregate(proportion~habitat + occupation, rangi_DT, median)
-#names(prop_med)[3] <- "prop_med"
-
-
-#regroupement des donnees
-#rangi_DTsm <- merge(prop_mean, prop_med, bx =.(habitat, occupation))
-
-#calcul des quantiles
-#quantile_inf95 <- aggregate(proportion~habitat + occupation, rangi_DT, function(proportion) quantile (proportion, probs = 0.975))
-#quantile_sup95 <- aggregate(proportion~habitat + occupation, rangi_DT, function(proportion) quantile (proportion, probs = 0.025))
-
-#names(quantile_inf95)[3] <- "inf95"
-#names(quantile_sup95)[3] <- "sup95"
-
-#rangi_DTsm <- merge(rangi_DTsm, quantile_inf95, bx =.(habitat, occupation))
-#rangi_DTsm <- merge(rangi_DTsm, quantile_sup95, bx =.(habitat, occupation))
-
-
-
-## la methode en une ligne de RL
 rangi_DT[,proportion := as.numeric(proportion)]
 d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
 
@@ -495,10 +461,38 @@ rangi_rat <- rangi_rat %>% relocate(id_poly, .after = id_motu)
 rangi_rat$proportion <- (rangi_rat$area_poly/rangi_rat$area_motu)
 rangi_rat <- rangi_rat %>% relocate(proportion, .after = area_motu)
 
+
+#localisation des courlis
+loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
+loc_courlis <- subset(loc_courlis,location_long < 0)
+
+# Suppression des donnees ICARUS
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C01")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C03")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C04")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C05")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C06")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C07")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C08")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C11")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C12")
+
+
+
+## ajout de la colonne date (directement par RL dans les nouvelles donnees) et la colonne heure manuellement
+loc_courlis$heure_HH <- substr(loc_courlis$timestamp,12,13)
+loc_courlis$date_HH <- paste0(loc_courlis$date, "_", loc_courlis$heure_HH)
+
+
+# Transformation des coordonnees en donnees spatiales + modification de la projection
+courlis_sf <- st_as_sf(loc_courlis, coords = c("location_long","location_lat"))
+st_crs(courlis_sf) <- 4326
+courlis_sf <- st_transform(courlis_sf,crs=3832)
 sum_loc_rat <- st_intersection(rangi_rat, courlis_sf)
 
 setDT(sum_loc_rat)
-sum_loc_poly_rat <- sum_loc_rat[,.(occurence = .N),by=.(id_poly,bird_id,date_HH)][,.(occurence = .N),by=.(id_poly)]
+sum_loc_poly_rat <- sum_loc_rat[,.(occurence = .N),by=.(id_poly,bird_id)][,.(occurence = .N),by=.(id_poly)]
 
 rangi_rat <- merge(rangi_rat, sum_loc_poly_rat, bx = "id_poly", all.x = T)
 rangi_rat$occurence[is.na(rangi_rat$occurence)] <- 0
@@ -508,7 +502,90 @@ rangi_rat <- rangi_rat %>% relocate(occurence, .after = habitat)
 
 
 
-## GLMM (Icarus) ###################################################################################################################################################
+## GLMM (OrniTrack) ###################################################################################################################################################
+
+
+setDT(rangi_rat)
+#calcul des occurences
+sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, bird_id)]
+
+#ajout des absences utilise par individu = permet de definir le domaine vital (DV)= zone utilise pour toutes les activites
+bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id)])
+poly_motu <- rangi_rat[,.(id_motu, id_poly)]
+bird_poly <- merge(bird_motu, rangi_rat[,.(id_motu, id_poly)], by= "id_motu", allow.cartesian= T)
+
+#ajout daymight
+#bird_daynight <- rbind (bird_poly[,daynight :="day"], bird_poly[,daynight :="night"])
+
+sum_loc_motus <- merge(sum_loc_motus, bird_poly, by = c("id_poly","bird_id"), all =T, allow.cartesian= T)
+setDT(sum_loc_motus)
+sum_loc_motus$occurence[is.na(sum_loc_motus$occurence)] <- 0
+sum_loc_motus <- sum_loc_motus %>% relocate(id_motu, .after = id_poly)
+sum_loc_motus <- sum_loc_motus %>% relocate(id_poly, .after = id_motu)
+
+tab_glmm_o <- merge(sum_loc_motus, rangi_rat[,c(1,3,5,6)])
+tab_glmm_o[,balise := "orniTrack"]
+tab_glmm_o[,area_poly := as.numeric(area_poly)]
+tab_glmm_o[,area_poly_st := scale(area_poly)]
+tab_glmm_o[,rats := as.factor(rat == 1)]
+
+#somme occ muflat
+#sum_mudflat <- sum(tab_glmm[habitat == "mudflat", occurence])
+#sum_all <- sum(tab_glmm[, occurence])
+#prop_mudflat <- sum_mudflat/sum_all
+
+
+
+
+
+
+#Glmm
+library(glmm)
+library(glmmTMB)
+glmm <- glmmTMB(occurence~habitat*rats + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~bird_id ,data=tab_glmm[habitat != "mudflat",], control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS")))
+sglmm <- summary(glmm)
+print(sglmm)
+
+
+# Effet des rats sur la présence des courlis sur chaque habitats
+library(ggeffects)
+ggpred <- ggpredict(glmm,terms = c("habitat","rats"))
+print(ggpred)
+#png("Rplot/glmm.png", width= 300, height = 300)
+plot(ggpred)
+#dev.off()
+
+
+# Effet du jour et de la nuit sur la présence des courlis sur chaque habitats
+#ggpred <- ggpredict(glmm,terms = c("habitat","day_night"))
+#print(ggpred)
+#plot(ggpred)
+
+
+
+# Histogrammes des occurrences
+gg <- ggplot(data = tab_glmm, aes (x= occurence)) + facet_wrap(.~habitat, scales = "free") + geom_histogram()
+gg
+#ggsave("Rplot/histo_occ.png",gg)
+
+
+
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
+
+
+
+
+
+
+
+
+
+
+
+
+## GLMM (OrniTrack mais avec modele icarus comprenant day_night) ###################################################################################################################################################
 
 
 setDT(rangi_rat)
@@ -542,27 +619,54 @@ sum_loc_motus$occurence[is.na(sum_loc_motus$occurence)] <- 0
 sum_loc_motus <- sum_loc_motus %>% relocate(id_motu, .after = id_poly)
 sum_loc_motus <- sum_loc_motus %>% relocate(id_poly, .after = id_motu)
 
-tab_glmm <- merge(sum_loc_motus, rangi_rat[,c(1,3,5,6)])
-tab_glmm[,area_poly := as.numeric(area_poly)]
-tab_glmm[,area_poly_st := scale(area_poly)]
-tab_glmm[,rat_bool := as.factor(rat == 1)]
+tab_glmm_o <- merge(sum_loc_motus, rangi_rat[,c(1,3,5,6)])
+tab_glmm_o[,balise := "orniTrack"]
+tab_glmm_o[,area_poly := as.numeric(area_poly)]
+tab_glmm_o[,area_poly_st := scale(area_poly)]
+tab_glmm_o[,rats := as.factor(rat == 1)]
 
 #somme occ muflat
-sum_mudflat <- sum(tab_glmm[habitat == "mudflat", occurence])
-sum_all <- sum(tab_glmm[, occurence])
-prop_mudflat <- sum_mudflat/sum_all
+#sum_mudflat <- sum(tab_glmm[habitat == "mudflat", occurence])
+#sum_all <- sum(tab_glmm[, occurence])
+#prop_mudflat <- sum_mudflat/sum_all
 
 
 
 
+tab_glmm <- bind_rows(tab_glmm_i, tab_glmm_o)
 
-tab_glmm[,rats := as.factor(rat == 1)]
+
+
 
 library(glmm)
 library(glmmTMB)
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm[habitat != "mudflat",])
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm_o[habitat != "mudflat",])
 sglmm <- summary(glmm)
 print(sglmm)
+
+
+# ziformula = 1
+#glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~1 ,data=tab_glmm[habitat != "mudflat",])
+#sglmm <- summary(glmm)
+#print(sglmm)
+
+# ziformula = day_night
+#glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm[habitat != "mudflat",])
+#sglmm <- summary(glmm)
+#print(sglmm)
+
+
+# ziformula = bird_id
+#glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~bird_id ,data=tab_glmm[habitat != "mudflat",])
+#sglmm <- summary(glmm)
+#print(sglmm)
+
+
+# ziformula = day_night + bird_id
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm_o[habitat != "mudflat",])
+sglmm <- summary(glmm)
+print(sglmm)
+
 
 
 
@@ -592,4 +696,6 @@ gg
 library(DHARMa)
 simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
 plot(simulationOutput)
+
+
 

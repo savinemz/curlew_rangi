@@ -97,7 +97,7 @@ gg <- gg + geom_sf(data = courlis_sf_lb,aes(colour=bird_id),size=1)
 gg <- gg + theme_bw() + labs(colour = "",fill="")
 gg <- gg + theme(legend.position = 'none')
 gg
-#ggsave("Rplot/fig_courlis_lagon_bleu3.png",gg)
+#ggsave("Rplot/OrniTrack/fig_courlis_lagon_bleu.png",gg)
 
 
 
