@@ -1,6 +1,8 @@
 library(sf); library(dplyr)
 library(data.table)
 
+#Donnees balise Icarus #################################################################################################################################################
+
 #calculs des surfaces par polygones
 #rangi_rat <- st_read("SIG/rangi_atoll.shp")
 rangi_rat <- st_read("SIG/rangi_motu.shp")
@@ -26,7 +28,9 @@ rangi_rat <- rangi_rat %>% relocate(proportion, .after = area_motu)
 
 
 
-#Donnees balise Icarus #################################################################################################################################################
+
+
+
 #localisation des courlis
 loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
@@ -133,6 +137,35 @@ print(sglmm)
 
 
 #Donnees balise OrniTrack #################################################################################################################################################
+
+#calculs des surfaces par polygones
+#rangi_rat <- st_read("SIG/rangi_atoll.shp")
+rangi_rat <- st_read("SIG/rangi_motu.shp")
+rangi_rat$area_poly <- st_area(rangi_rat)
+
+#calcul des surfaces total par habitat
+area_habitat <- aggregate(area_poly~habitat, rangi_rat, sum)
+
+
+#calcul des surfaces par motu (methode vecteur)
+area_motu <- aggregate(area_poly~id_motu, rangi_rat, sum)
+names(area_motu)[2] <- "area_motu"
+rangi_rat <- merge(rangi_rat, area_motu, by = "id_motu")
+
+
+#identifiant des polygones
+rangi_rat$id_poly <- 1: nrow(rangi_rat)
+rangi_rat <- rangi_rat %>% relocate(id_poly, .after = id_motu)
+
+#proportion des habitats par motu
+rangi_rat$proportion <- (rangi_rat$area_poly/rangi_rat$area_motu)
+rangi_rat <- rangi_rat %>% relocate(proportion, .after = area_motu)
+
+
+
+
+
+
 #localisation des courlis
 loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
