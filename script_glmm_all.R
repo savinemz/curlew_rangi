@@ -300,12 +300,13 @@ plot(simulationOutput)
 
 
 tab_glmm <- bind_rows(tab_glmm_i, tab_glmm_o)
-#tab_glmm[,balises := as.factor(balise == "icarus")]
+setDT(tab_glmm)
+tab_glmm[,balises := as.factor(balise == "icarus")]
 
 ## GLMM i&o ###################################################################################################################################################
 
 # glmm balise o+i
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + balise + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm_o[habitat != "mudflat",])
-sglmm <- summary(glmm)
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + balises + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm[habitat != "mudflat",])
+ sglmm <- summary(glmm)
 print(sglmm)
 
