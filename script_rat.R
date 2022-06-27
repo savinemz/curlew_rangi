@@ -1,8 +1,10 @@
+
+# Ajout donnees rats
+
 library(sf); library(dplyr)
 library(data.table)
 
-
-#calculs des surfaces par polygones: methode 1
+#calculs des surfaces par polygones
 #rangi_rat <- st_read("SIG/rangi_atoll.shp")
 rangi_rat <- st_read("SIG/rangi_motu.shp")
 rangi_rat$area_poly <- st_area(rangi_rat)
@@ -38,14 +40,8 @@ rangi_rat <- rangi_rat %>% relocate(occurence, .after = habitat)
 
 
 
+## GLMM (Icarus) ###################################################################################################################################################
 
-
-
-
-
-
-
-#####################GLMM
 
 setDT(rangi_rat)
 #calcul des occurences
@@ -83,42 +79,48 @@ tab_glmm[,area_poly := as.numeric(area_poly)]
 tab_glmm[,area_poly_st := scale(area_poly)]
 tab_glmm[,rat_bool := as.factor(rat == 1)]
 
+#somme occ muflat
+sum_mudflat <- sum(tab_glmm[habitat == "mudflat", occurence])
+sum_all <- sum(tab_glmm[, occurence])
+prop_mudflat <- sum_mudflat/sum_all
+
+
+
+
+
+tab_glmm[,rats := as.factor(rat == 1)]
+
 library(glmm)
-#install.packages("glmmTMB")
 library(glmmTMB)
-citation("glmmTMB")
-glmm <- glmmTMB(occurence~habitat*day_night + rat_bool*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~1,data=tab_glmm[habitat != "mudflat",])
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm[habitat != "mudflat",])
 sglmm <- summary(glmm)
 print(sglmm)
 
 
-#install.packages("ggeffects")
+
+# Effet des rats sur la présence des courlis sur chaque habitats
 library(ggeffects)
-citation("ggeffects")
-  ggpred <- ggpredict(glmm,terms = c("habitat","rat_bool"))
-  print(ggpred)
+ggpred <- ggpredict(glmm,terms = c("habitat","rats"))
+print(ggpred)
+#png("Rplot/glmm.png", width= 300, height = 300)
 plot(ggpred)
+#dev.off()
 
 
-
+# Effet du jour et de la nuit sur la présence des courlis sur chaque habitats
 ggpred <- ggpredict(glmm,terms = c("habitat","day_night"))
 print(ggpred)
 plot(ggpred)
 
 
 
-library(gginteraction)
+# Histogrammes des occurrences
+gg <- ggplot(data = tab_glmm, aes (x= occurence)) + facet_wrap(.~habitat, scales = "free") + geom_histogram()
+gg
+#ggsave("Rplot/histo_occ.png",gg)
 
-ggplot(gginteraction(glmm), aes(x, predicted, colour = group)) +
-  geom_line()
 
 
-#install.packages("DHARMa")
-#library(DHARMa)
-citation("DHARMa")
+library(DHARMa)
 simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
-
 plot(simulationOutput)
-
-
-

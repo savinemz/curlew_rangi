@@ -1,30 +1,17 @@
 library(sf); library(dplyr)
 library(data.table)
-### Numerisation des habitats
 
 
-### Numerisation des habitats
-#calculs des surfaces par polygones: methode 1
+#calculs des surfaces par polygones
 rangi <- st_read("SIG/rangi_atoll.shp")
 rangi <- rangi[,-3]
 rangi$area_poly <- st_area(rangi)
 
-#calcul des surfaces total par habitat
+#calcul des surfaces totales par habitat
 area_habitat <- aggregate(area_poly~habitat, rangi, sum)
 
 
-#calcul des surfaces par motu (methode boucle)
-#area_motu <- rep(NA,153)  #aires <- numeric(length=153) meme chose que rep() mais en mieux parce que c'est la formule de RL
-#A<-NA
-
-#for(i in 1:153){
-  #A<- sum(rangi$area_poly [rangi$id_motu == i])
-
-  #area_motu [i]<-A
-#}
-
-
-#calcul des surfaces par motu (methode vecteur)
+#calcul des surfaces par motu
 area_motu <- aggregate(area_poly~id_motu, rangi, sum)
 names(area_motu)[2] <- "area_motu"
 rangi <- merge(rangi, area_motu, by = "id_motu")
@@ -62,35 +49,26 @@ rangi <- rangi %>% relocate(proportion, .after = area_motu)
 #sum_rangi <- rangi[ !(rangi$habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
 #sum(sum_rangi$area_poly)
 
+#sum_mudflat_area <- sum(rangi_rat[habitat == "mudflat", area_poly])
+#sum_all_area <- sum(rangi_rat[, area_poly])
+#area_mudflat <- sum_mudflat_area/sum_all_area
 
 
 
 
+## Analyse des donnees courlis ############################################################################################################################
 
-### Analyse des donnees courlis
-#localisation des courlis par polygone
+#localisation des courlis
 loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
 loc_courlis <- subset(loc_courlis,location_long < 0)
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C27")
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C32")
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C33")
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C34")
-#loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C40")
 
 
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C01")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C03")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C04")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C05")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C06")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C07")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C08")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C11")
-loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C12")
-
-
-
+# # Suppression des donnees OrniTrack
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C27")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C32")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C33")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C34")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C40")
 
 
 ## ajout de la colonne date (directement par RL dans les nouvelles donnees) et la colonne heure manuellement
@@ -106,14 +84,14 @@ sum_loc <- st_intersection(rangi, courlis_sf)
 
 
 
-#nombre de donnes par heure par oiseau pour explisquer le choix des heures
+#nombre de donnes par heure par oiseau pour expliquer le choix des heures
 setDT(loc_courlis)
 nb_data_HH <- loc_courlis [,.(nb_data_HH = .N), by = .(bird_id, date_HH)]
 nb_data_HH[,nb_data_HH := as.numeric(nb_data_HH)]
 #bp <- boxplot (nb_data_HH$nb_data_HH ~ nb_data_HH$bird_id)
 
 
-#graphique nombre de données par heure par oiseaux
+# figure nombre de données par heure par oiseaux
 library(ggplot2)
 gg <- ggplot(nb_data_HH,aes(x=nb_data_HH,y=bird_id)) + geom_violin()
 gg <- gg + labs(y = "Bird_id", x = "Number of data per hour")
@@ -132,9 +110,8 @@ gg
 
 
 
-### Description du jeu de données
+### Tableau description donnees courlis ########################################
 
-#tableau decriptif des donnees courlis
 library(data.table)
 setDT(loc_courlis)
 sum_courlis <- loc_courlis[,.(nb_data = .N,
@@ -147,7 +124,7 @@ sum_courlis[,duration_days := difftime(last, first, unit = "days")]#difference d
 nb_day <- loc_courlis [,.(j = 1), by = .(bird_id, date)] # regroupement par oiseau et par date
 nb_day <- nb_day [,.(nb_day= .N), by = .(bird_id)] # nombre de jour de données 
 sum_courlis <- merge(sum_courlis, nb_day, bx = "bird_id")
-fwrite(sum_courlis, "table/sum_courlis.csv")
+fwrite(sum_courlis, "table/sum_courlis_ICARUS.csv")
 
 
 #nombre de donnees par oiseau par J/N
@@ -156,7 +133,7 @@ fwrite(sum_courlis_daynight, "table/sum_courlis_daynight.csv")
 
 
 #stat sur les donnees par heure par oiseau
-#nombre de donnees par oiseau et par heure
+#nombre de donnees par oiseau et par jour et par heure
 nb_data_j <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date, date_HH)]
 
 mean_data_j <- mean(nb_data_j$nb_data_jour)# moyenne du nombre de donnees par heure = 2 en arrondissant
@@ -164,7 +141,9 @@ min_data_j <- min(nb_data_j$nb_data_jour)# le plus petit nombre de donnees par h
 max_data_j <- max(nb_data_j$nb_data_jour)# le plus grand nombre de donnees par heure = 4
 
 
-#nombre de donnees par oiseau par jour par J/N
+
+### figure nombre de donnees par oiseau par jour par J/N ##########################################################################################################
+
 nb_data_j_daynight <- loc_courlis [,.(nb_data_jour = .N), by = .(bird_id, date, day_night)]#comme on parle de J/N après, c'est interessant de savoir comment sont distribues les donnees
 all_date <- expand.grid(bird_id = unique(loc_courlis[, bird_id]), date = seq(as.Date(min(loc_courlis$date)), as.Date(max(loc_courlis$date)),1), day_night = c("day", "night"))
 all_date$date <- as.character(all_date$date)
@@ -201,11 +180,13 @@ max_data_date <- max(sum_courlis$last)# donnee emise au maximum pendant 6 mois
 
 
 
+## Utilisation du paysage par les oiseaux ##########################################################################################################
 
-
+### Comparaison des habitats composant les motus occupes et non occupes ###################################################################################################
 
 library(data.table)
 
+#Trie des donnees
 # regroupement du nombre d'occurence par polygone, par oiseau, par jour et par heure
 setDT(sum_loc)
 sum_loc_poly <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id,date_HH)][,.(occurence = .N),by=.(id_poly)]
@@ -213,8 +194,6 @@ sum_loc_poly <- sum_loc[,.(occurence = .N),by=.(id_poly,bird_id,date_HH)][,.(occ
 rangi <- merge(rangi, sum_loc_poly, bx = "id_poly", all.x = T)
 rangi$occurence[is.na(rangi$occurence)] <- 0
 rangi <- rangi %>% relocate(occurence, .after = habitat)
-
-
 
 
 #création data.table pour d_gg
@@ -256,17 +235,10 @@ rangi_DT[,proportion := as.numeric(proportion)]
 d_gg <- rangi_DT[,.(prop_mean = mean(proportion),prop_med = median(proportion),inf95 = quantile(proportion, 0.025),sup95 = quantile(proportion, 0.975)), by=.(habitat,occupation)]
 d_gg <- d_gg[ !(habitat %in% c("ocean","lagoon","blue_lagoon","shallow")),]
 
-# graphique = proportion moyenne des habitats en fonction de l'occupation des motus (T, F) par habitat
+
+
+# Figure comparaison des habitats composant les motus occupes et non occupes
 library(ggplot2); library(units)
-
-#graphique + chgmt couleur par occupation avec intervalles 95%
-#gg2 <-    ggplot(data = d_gg, aes(x = habitat, y = prop_mean, fill = occupation, group = occupation)) +
-  #geom_bar(stat = "identity", position = "dodge") +
-  #geom_errorbar(aes(ymin = inf95, ymax = sup95), width = 0.5,alpha=.5,size=1) +
-  #scale_fill_brewer(palette="Paired") + theme_minimal()
-#gg2
-
-#graphique RL
 gg <- ggplot(data = d_gg, aes(x = habitat, y = prop_mean,fill = occupation,colour=occupation,group=occupation))
 gg <- gg + geom_errorbar(aes(ymin = inf95, ymax = sup95),width = 0.5,alpha=.5,size=1)
 gg <- gg +  geom_point(alpha=.8,size=2)
@@ -280,125 +252,9 @@ gg
 
 
 
+### Selection des habitats selon le jour ou la nuit #######################################################################
 
-
-
-
-
-
-
-
-
-# realisation de l'APC avec la librairie FactoMineR
-library("FactoMineR")
-library("factoextra")
-library(ade4)
-
-
-
-#creation tableur pour l'ouverture des donnees numeriques => ACP
-rangi_DT <- aggregate(area_poly~habitat + id_motu, rangi_DT, sum)
-setDT(rangi_DT)
-rangi_DT <- rangi_DT %>% relocate(habitat, .after = id_motu)
-rangi_DT[,area_poly := as.numeric(area_poly)]
-
-
-library(tidyr)
-rangi_PCA <- rangi_DT
-rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
-            values_from = "area_poly")
-rangi_PCA[is.na(rangi_PCA) == T] <- 0
-row.names (rangi_PCA) <- rangi_PCA$id_motu
-rangi_PCA <- rangi_PCA[,-1]
-rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
-
-ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
-
-# graphique de corrélation des variables
-fviz_pca_var(ACP, col.var = "contrib",
-             gradient.cols = c("blue", "yellow", "red"),
-             legend.title = "variable contribution",
-             geom.ind = "point",
-             repel = TRUE
-)
-
-
-
-# test de correlation entre les variables habitats et surfaces
-#rangi_DT[,habitat := as.numeric(habitat)]
-cor_test <- cor.test(rangi$area_poly, rangi$area_motu, method="spearman")
-cor_test
-
-
-
-
-
-
-
-
-#ACP avec couche sig rangi
-#creation tableur pour l'ouverture des donnees numeriques => ACP
-rangi_DT[,area_poly := as.numeric(area_poly)]
-rangi_DT[,area_motu := as.numeric(area_motu)]
-
-library(tidyr)
-rangi_PCA <- rangi_DT[,-c(1,4,6,7,8,9)]
-rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
-                        values_from = "area_poly")
-rangi_PCA[is.na(rangi_PCA) == T] <- 0
-row.names (rangi_PCA) <- rangi_PCA$id_motu
-rangi_PCA <- rangi_PCA[,-1]
-rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
-
-ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
-
-# graphique de corrélation des variables
-fviz_pca_var(ACP, col.var = "contrib",
-             gradient.cols = c("blue", "yellow", "red"),
-             legend.title = "variable contribution",
-             geom.ind = "point",
-             repel = TRUE
-)
-
-
-ACP$var
-#str(ACP)
-# coord: Coordonnées
-# Cos2: qualité de répresentation
-# contrib: Contributions aux composantes principales
-
-# extraction des valeurs propres et la proportion de variances retenues par les composantes principales
-eig.val <- get_eigenvalue(ACP)
-eig.val
-            #Dim1,2>1 = les composantes principales (PC) concernée représentent + de 80% de la variance
-            # eigenvalue>1 est généralement utilisé comme seuil à partir duquel les PC sont conservés.
-
-
-# graphique des valeurs propres
-plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 70))
-plot_eigenvalue
-
-
-#library("corrplot")
-#corrplot(var$contrib, is.corr=FALSE)
-
-# Contributions des variables à PC1
-fviz_contrib(ACP, choice = "var", axes = 1, top = 10)
-# Contributions des variables à PC2
-fviz_contrib(ACP, choice = "var", axes = 2, top = 10)
-
-
-
-
-
-
-
-
-
-
-
-
-
+#Analyse sans daynight
 #Distribution des localisations par habitat
 distri_loc_hab <- sum_loc[,-c(1,2,4,5,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,23,24,25,26,27)]
 distri_loc_hab <- distri_loc_hab %>% relocate(habitat, .after = bird_id)
@@ -469,14 +325,7 @@ ggdistrib
 
 
 
-
-
-
-
-
-
-
-# Analyse daynight
+# Analyse avec daynight
 distri_loc_hab <- sum_loc[,-c(1,2,4,5,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,24,25,26,27)]
 distri_loc_hab <- distri_loc_hab %>% relocate(habitat, .after = bird_id)
 distri_loc_hab <- distri_loc_hab %>% relocate(proportion, .after = habitat)
@@ -546,10 +395,7 @@ ggdistrib <- ggdistrib + scale_fill_manual(values = vec_fill)
 ggdistrib <- ggdistrib + scale_y_discrete(breaks = c("habitat_motu_occupe", "habitat",tab_bird_dn[,bird_id]),labels= c("habitat_motu_occupe", "habitat",tab_bird_dn[,label]))
 ggdistrib <- ggdistrib + labs(fill ="", y = "", x="")
 ggdistrib
-
-
-ggsave("Rplot/distrib_loc_jn2.png",ggdistrib)
-
+#ggsave("Rplot/distrib_loc_jn2.png",ggdistrib)
 
 
 
@@ -558,27 +404,231 @@ ggsave("Rplot/distrib_loc_jn2.png",ggdistrib)
 
 
 
+## Description du paysage ####################################################################################################################
+
+
+### APC #############################################################################################################################################
+# ACP à partir de la surface de chaque habitat par motu 
+
+library("FactoMineR")
+library("factoextra")
+library(ade4)
+
+#creation tableur pour l'ouverture des donnees numeriques => ACP
+rangi_DT <- aggregate(area_poly~habitat + id_motu, rangi_DT, sum)
+setDT(rangi_DT)
+rangi_DT <- rangi_DT %>% relocate(habitat, .after = id_motu)
+rangi_DT[,area_poly := as.numeric(area_poly)]
+
+
+library(tidyr)
+rangi_PCA <- rangi_DT
+rangi_PCA <-pivot_wider(rangi_PCA, names_from = "habitat",
+                        values_from = "area_poly")
+rangi_PCA[is.na(rangi_PCA) == T] <- 0
+row.names (rangi_PCA) <- rangi_PCA$id_motu
+rangi_PCA <- rangi_PCA[,-1]
+rangi_PCA <- rangi_PCA[,-c(1,2,3,4)]
+
+ACP <- PCA(rangi_PCA, scale.unit = TRUE, ncp = 5, graph = TRUE)
+
+# graphique de corrélation des variables
+fviz_pca_var(ACP, col.var = "contrib",
+             gradient.cols = c("blue", "yellow", "red"),
+             legend.title = "variable contribution",
+             geom.ind = "point",
+             repel = TRUE
+)
+
+ACP$var
+#str(ACP)
+# coord: Coordonnées
+# Cos2: qualité de répresentation
+# contrib: Contributions aux composantes principales
+
+# extraction des valeurs propres et la proportion de variances retenues par les composantes principales
+eig.val <- get_eigenvalue(ACP)
+eig.val
+
+# graphique des valeurs propres
+plot_eigenvalue <- fviz_eig(ACP, addlabels = TRUE, ylim = c(0, 70))
+plot_eigenvalue
+
+
+# Contributions des variables à PC1
+fviz_contrib(ACP, choice = "var", axes = 1, top = 10)
+# Contributions des variables à PC2
+fviz_contrib(ACP, choice = "var", axes = 2, top = 10)
 
 
 
 
-# le nombre de courlis par motus
-setDT(sum_loc)
-nb_bird_motu <- sum_loc [,.(j = 1), by = .(bird_id, id_motu)] # regroupement par oiseau et par motu
-nb_bird_motu <- nb_bird_motu [,.(nb_bird_motu= .N), by = .(id_motu)] #nombre d'oiseau par motu
-#représenter le resultat sur une carte avec un gradient de couleur selon le nombre d'oiseau par motu
 
 
-#graph nombre courlis par motus
-library(sf)
-land <- st_read("SIG/land.shp")
-land <- st_transform(land,crs=3832)
-land <- st_make_valid(land)
-land_lb <- st_intersection(land,st_buffer(st_union(rangi),1000))
+# Ajout donnees rats
+
+library(sf); library(dplyr)
+library(data.table)
+
+#calculs des surfaces par polygones
+#rangi_rat <- st_read("SIG/rangi_atoll.shp")
+rangi_rat <- st_read("SIG/rangi_motu.shp")
+rangi_rat$area_poly <- st_area(rangi_rat)
+
+#calcul des surfaces total par habitat
+area_habitat <- aggregate(area_poly~habitat, rangi_rat, sum)
 
 
-ggb <- ggplot()
-ggb <- ggb + geom_sf(data = land_lb)
-ggb <- ggb + geom_sf(data = nb_bird_motu,aes(fill= ),colour=NA,alpha=.7)
-ggb <-
-ggb
+#calcul des surfaces par motu (methode vecteur)
+area_motu <- aggregate(area_poly~id_motu, rangi_rat, sum)
+names(area_motu)[2] <- "area_motu"
+rangi_rat <- merge(rangi_rat, area_motu, by = "id_motu")
+
+
+#identifiant des polygones
+rangi_rat$id_poly <- 1: nrow(rangi_rat)
+rangi_rat <- rangi_rat %>% relocate(id_poly, .after = id_motu)
+
+#proportion des habitats par motu
+rangi_rat$proportion <- (rangi_rat$area_poly/rangi_rat$area_motu)
+rangi_rat <- rangi_rat %>% relocate(proportion, .after = area_motu)
+
+
+#localisation des courlis
+loc_courlis <- read.csv("Courlis_all_daynight/courlis_all_daynight.csv")
+loc_courlis <- subset(loc_courlis,location_long < 0)
+
+
+# # Suppression des donnees OrniTrack
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C27")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C32")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C33")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C34")
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C40")
+
+#suppression de l'individu C09 (donnees insuffisantes)
+loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
+
+## ajout de la colonne date (directement par RL dans les nouvelles donnees) et la colonne heure manuellement
+loc_courlis$heure_HH <- substr(loc_courlis$timestamp,12,13)
+loc_courlis$date_HH <- paste0(loc_courlis$date, "_", loc_courlis$heure_HH)
+
+
+# Transformation des coordonnees en donnees spatiales + modification de la projection
+courlis_sf <- st_as_sf(loc_courlis, coords = c("location_long","location_lat"))
+st_crs(courlis_sf) <- 4326
+courlis_sf <- st_transform(courlis_sf,crs=3832)
+sum_loc_rat <- st_intersection(rangi_rat, courlis_sf)
+
+
+
+
+setDT(sum_loc_rat)
+sum_loc_poly_rat <- sum_loc_rat[,.(occurence = .N),by=.(id_poly,bird_id,date_HH)][,.(occurence = .N),by=.(id_poly)]
+
+rangi_rat <- merge(rangi_rat, sum_loc_poly_rat, bx = "id_poly", all.x = T)
+rangi_rat$occurence[is.na(rangi_rat$occurence)] <- 0
+rangi_rat <- rangi_rat %>% relocate(occurence, .after = habitat)
+
+
+
+
+
+## GLMM (Icarus) ###################################################################################################################################################
+
+
+setDT(rangi_rat)
+#calcul des occurences
+sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, day_night, bird_id)]
+
+#ajout des absences utilise par individu = permet de definir le domaine vital (DV)= zone utilise pour toutes les activites
+bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id)])
+poly_motu <- rangi_rat[,.(id_motu, id_poly)]
+bird_poly <- merge(bird_motu, rangi_rat[,.(id_motu, id_poly)], by= "id_motu", allow.cartesian= T)
+
+#ajout daymight
+#bird_daynight <- rbind (bird_poly[,daynight :="day"], bird_poly[,daynight :="night"])
+setDF(bird_poly)
+bird_daynight_day <- bird_poly
+setDT(bird_daynight_day)
+bird_daynight_day [,day_night := "day"]
+
+bird_daynight_night <- bird_poly
+setDT(bird_daynight_night)
+bird_daynight_night [,day_night := "night"]
+
+setDT(bird_poly)
+bird_daynight <- bind_rows(bird_daynight_day, bird_daynight_night)
+
+
+
+sum_loc_motus <- merge(sum_loc_motus, bird_daynight, all =T, allow.cartesian= T)
+setDT(sum_loc_motus)
+sum_loc_motus$occurence[is.na(sum_loc_motus$occurence)] <- 0
+sum_loc_motus <- sum_loc_motus %>% relocate(id_motu, .after = id_poly)
+sum_loc_motus <- sum_loc_motus %>% relocate(id_poly, .after = id_motu)
+
+tab_glmm_i <- merge(sum_loc_motus, rangi_rat[,c(1,3,5,6)])
+tab_glmm_i[,balise := "icarus"]
+tab_glmm_i[,area_poly := as.numeric(area_poly)]
+tab_glmm_i[,area_poly_st := scale(area_poly)]
+tab_glmm_i[,rats := as.factor(rat == 1)]
+
+#somme occ muflat
+#sum_mudflat <- sum(tab_glmm[habitat == "mudflat", occurence])
+#sum_all <- sum(tab_glmm[, occurence])
+#prop_mudflat <- sum_mudflat/sum_all
+
+
+
+# glmm de ref dans le rapport ziformula = day_night
+library(glmm)
+library(glmmTMB)
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm_i[habitat != "mudflat",])
+sglmm <- summary(glmm)
+print(sglmm)
+
+# ziformula = bird_id
+#glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~bird_id, data=tab_glmm[habitat != "mudflat",])
+#sglmm <- summary(glmm)
+#print(sglmm)
+
+
+# ziformula = 1
+#glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~1, data=tab_glmm[habitat != "mudflat",])
+#sglmm <- summary(glmm)
+#print(sglmm)
+
+# ziformula = daynight et bird_id
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id, data=tab_glmm_i[habitat != "mudflat",])
+sglmm <- summary(glmm)
+print(sglmm)
+
+
+# Effet des rats sur la présence des courlis sur chaque habitats
+library(ggeffects)
+ggpred <- ggpredict(glmm,terms = c("habitat","rats"))
+print(ggpred)
+#png("Rplot/glmm.png", width= 300, height = 300)
+plot(ggpred)
+#dev.off()
+
+
+# Effet du jour et de la nuit sur la présence des courlis sur chaque habitats
+ggpred <- ggpredict(glmm,terms = c("habitat","day_night"))
+print(ggpred)
+plot(ggpred)
+
+
+
+# Histogrammes des occurrences
+gg <- ggplot(data = tab_glmm, aes (x= occurence)) + facet_wrap(.~habitat, scales = "free") + geom_histogram()
+gg
+#ggsave("Rplot/histo_occ.png",gg)
+
+
+
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
+
