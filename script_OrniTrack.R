@@ -124,6 +124,7 @@ sum_courlis <- loc_courlis[,.(nb_data = .N,
                               last = max(date)), by =.(bird_id)] # par oiseau: combien de donnees, premiere date et derniere date
 
 
+
 sum_courlis[,duration_days := difftime(last, first, unit = "days")]#difference de temps entre la premiere et la derniere donnee. le ":=" veut dire pas de regroupement
 
 nb_day <- loc_courlis [,.(j = 1), by = .(bird_id, date)] # regroupement par oiseau et par date

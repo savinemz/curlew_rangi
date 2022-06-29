@@ -124,7 +124,7 @@ sum_courlis[,duration_days := difftime(last, first, unit = "days")]#difference d
 nb_day <- loc_courlis [,.(j = 1), by = .(bird_id, date)] # regroupement par oiseau et par date
 nb_day <- nb_day [,.(nb_day= .N), by = .(bird_id)] # nombre de jour de données 
 sum_courlis <- merge(sum_courlis, nb_day, bx = "bird_id")
-fwrite(sum_courlis, "table/sum_courlis_ICARUS.csv")
+#fwrite(sum_courlis, "table/sum_courlis_ICARUS.csv")
 
 
 #nombre de donnees par oiseau par J/N

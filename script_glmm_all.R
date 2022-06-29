@@ -77,6 +77,28 @@ setDT(rangi_rat)
 #calcul des occurences
 sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, day_night, bird_id)]
 
+
+
+
+
+#setDT(rangi_rat)
+#calcul des occurences
+sum_loc_rat[,date_j := as.numeric(format(as.Date(date),"%j"))]
+sum_loc_rat[,first_date_j := min(date_j),by = .(bird_id)]
+sum_loc_rat[,beacon_age_j := date_j - first_date_j]
+sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, day_night, bird_id,beacon_age_j)]
+
+
+#ajout des absences utilise par individu = permet de definir le domaine vital (DV)= zone utilise pour toutes les activites
+bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id,beacon_age_j)])
+poly_motu <- rangi_rat[,.(id_motu, id_poly)]
+bird_poly <- merge(bird_motu, poly_motu, by= "id_motu", allow.cartesian= T)
+
+
+
+
+
+
 #ajout des absences utilise par individu = permet de definir le domaine vital (DV)= zone utilise pour toutes les activites
 bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id)])
 poly_motu <- rangi_rat[,.(id_motu, id_poly)]
@@ -109,6 +131,10 @@ tab_glmm_i[,balise := "icarus"]
 tab_glmm_i[,area_poly := as.numeric(area_poly)]
 tab_glmm_i[,area_poly_st := scale(area_poly)]
 tab_glmm_i[,rats := as.factor(rat == 1)]
+
+
+
+tab_glmm_i[habitat == "reef",habitat := " reef"]
 
 
 
@@ -211,12 +237,20 @@ rangi_rat <- rangi_rat %>% relocate(occurence, .after = habitat)
 
 setDT(rangi_rat)
 #calcul des occurences
-sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, day_night, bird_id)]
+
+sum_loc_rat[,date_j := as.numeric(format(as.Date(date),"%j"))]
+sum_loc_rat[,first_date_j := min(date_j),by = .(bird_id)]
+sum_loc_rat[,beacon_age_j := date_j - first_date_j]
+sum_loc_motus <- sum_loc_rat [,.(occurence =.N), by =.(id_poly, day_night, bird_id,beacon_age_j)]
+
 
 #ajout des absences utilise par individu = permet de definir le domaine vital (DV)= zone utilise pour toutes les activites
-bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id)])
+bird_motu <- unique(sum_loc_rat[,.(id_motu, bird_id,beacon_age_j)])
 poly_motu <- rangi_rat[,.(id_motu, id_poly)]
-bird_poly <- merge(bird_motu, rangi_rat[,.(id_motu, id_poly)], by= "id_motu", allow.cartesian= T)
+bird_poly <- merge(bird_motu, poly_motu, by= "id_motu", allow.cartesian= T)
+
+####################################################
+
 
 #ajout daymight
 #bird_daynight <- rbind (bird_poly[,daynight :="day"], bird_poly[,daynight :="night"])
@@ -234,6 +268,8 @@ bird_daynight <- bind_rows(bird_daynight_day, bird_daynight_night)
 
 
 
+
+
 sum_loc_motus <- merge(sum_loc_motus, bird_daynight, all =T, allow.cartesian= T)
 setDT(sum_loc_motus)
 sum_loc_motus$occurence[is.na(sum_loc_motus$occurence)] <- 0
@@ -246,31 +282,68 @@ tab_glmm_o[,area_poly := as.numeric(area_poly)]
 tab_glmm_o[,area_poly_st := scale(area_poly)]
 tab_glmm_o[,rats := as.factor(rat == 1)]
 
+tab_glmm_o[habitat == "reef",habitat := " reef"]
 
 
 
 # glmm de ref dans le rapport ziformula = day_night
 library(glmm)
 library(glmmTMB)
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night ,data=tab_glmm_o[habitat != "mudflat",])
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + bird_id * beacon_age_j+ (1|id_motu)  ,
+                family = "nbinom2",ziformula = ~day_night  ,data=tab_glmm_o[habitat != "mudflat",])
+
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
+
 sglmm <- summary(glmm)
 print(sglmm)
+
+
+
+
+# (1|id_motu:id_poly) 
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + bird_id*beacon_age_j + (1|id_motu:id_poly),
+                family = "nbinom2",ziformula = ~day_night, data=tab_glmm_o[habitat != "mudflat",])
+
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
+
+sglmm <- summary(glmm)
+print(sglmm)
+
+
+
+
+
+# (1|id_motu:id_poly) + ziformula = ~1
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + bird_id*beacon_age_j + (1|id_motu:id_poly),
+                family = "nbinom2",ziformula = ~1, data=tab_glmm_o[habitat != "mudflat",])
+
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
+
+sglmm <- summary(glmm)
+print(sglmm)
+
+
+
 
 
 # ziformula = day_night + bird_id
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm_o[habitat != "mudflat",])
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + (1|id_motu) + (1|bird_id), 
+                family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm_o[habitat != "mudflat",])
 sglmm <- summary(glmm)
 print(sglmm)
-
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
 
 
 # Effet des rats sur la présence des courlis sur chaque habitats
 library(ggeffects)
-ggpred <- ggpredict(glmm,terms = c("habitat","rats"))
+ggpred <- ggpredict(glmm,terms = c("habitat","rats","day_night"))
 print(ggpred)
-#png("Rplot/glmm.png", width= 300, height = 300)
 plot(ggpred)
-#dev.off()
+
 
 
 # Effet du jour et de la nuit sur la présence des courlis sur chaque habitats
@@ -302,11 +375,14 @@ plot(simulationOutput)
 tab_glmm <- bind_rows(tab_glmm_i, tab_glmm_o)
 setDT(tab_glmm)
 tab_glmm[,balises := as.factor(balise == "icarus")]
+#tab_glmm_o[habitat == "reef",habitat := " reef"]
 
 ## GLMM i&o ###################################################################################################################################################
 
 # glmm balise o+i
-glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + balises + (1|id_motu) + (1|bird_id), family = "nbinom2",ziformula = ~day_night + bird_id ,data=tab_glmm[habitat != "mudflat",])
+glmm <- glmmTMB(occurence~habitat*day_night + rats*day_night + area_poly_st + balises + (1|id_motu:id_poly) + (1|bird_id), 
+                family = "nbinom2",ziformula = ~ beacon_age_j + balises ,data=tab_glmm[habitat != "mudflat",])
  sglmm <- summary(glmm)
 print(sglmm)
-
+simulationOutput <- simulateResiduals(fittedModel = glmm, plot = F)
+plot(simulationOutput)
