@@ -21,7 +21,7 @@ courlis_sf <- subset(courlis_sf, courlis_sf$bird_id != "C09")
 courlis_sf_k <- courlis_sf[,c("bird_id")]
 courlis_sf_k <- as(courlis_sf_k,'Spatial')
 
-kdh <- kernelUD(courlis_sf_k, h="href")
+kdh <- kernelUD(courlis_sf_k, h="href",grid = 1000)
 ## si ne fonctionne pas tester h="href"
 image(kdh)
 
@@ -32,25 +32,20 @@ image(kdh)
 turtle.kernel.poly <- getverticeshr(kdh, percent = 95) 
 print(turtle.kernel.poly)
 plot(turtle.kernel.poly)
-
 sp::plot(turtle.kernel.poly, col = 1:4)
-
-
-
 
 
 
 turtle.kernel.poly <- getverticeshr(kdh[[12]], percent = 95) 
 print(turtle.kernel.poly)
 plot(turtle.kernel.poly)
-
 sp::plot(turtle.kernel.poly, col = 1:4)
 
 
 
 # creating SpatialPolygonsDataFrame
 kd_names <- names(kdh)
-ud_95 <- lapply(kdh, function(x) try(getverticeshr(x, 50)))
+ud_95 <- lapply(kdh, function(x) try(getverticeshr(x, 95)))
 
 
 sapply(1:length(ud_95), function(i) {
@@ -73,14 +68,14 @@ df_50$bird_id <- df_50$id
 
 
 
-gg <- ggplot()  + theme_bw()
+gg <- ggplot()  + theme_bw() + facet_wrap(.~bird_id, scales = "free")
 ##gg <- gg + geom_sf(data = COUCHE_LAGON_BLEU,aes(fill=habitat), colour=NA, size=0.2, alpha=.5)
 gg <- gg +   geom_polygon(data = df_95, aes(x = long, y = lat, color = bird_id, group = group),size=1.2,fill=NA,alpha = 1)
 gg <- gg +   geom_polygon(data = df_50, aes(x = long, y = lat, color = bird_id, group = group),size=1.2,fill=NA,alpha = 1)
 gg <- gg + geom_sf(data = dsf,aes(group=bird_id,colour= bird_id),size=0.8) #+ geom_path(data=dd,aes(x=X,y=Y,group=bird_id,colour= bird_id),alpha=0.2,size=0.5)
 gg <- gg + annotation_scale()
-gg <- gg + labs(x="",y="",colour="birds",title="Kernel 75% and 95%")
-gg <- gg + coord_sf(xlim = c(7284148,7288089), ylim = c( -1673693, -1671352))
+gg <- gg + labs(x="",y="",colour="birds",title="Kernel 95% and 50%")
+#gg <- gg + coord_sf(xlim = c(7284148,7288089), ylim = c( -1673693, -1671352))
 gg <- gg + scale_fill_manual(values=vec_colour)
 gg
 
