@@ -100,7 +100,6 @@ gg
 #ggsave("Rplot/OrniTrack/fig_courlis_lagon_bleu.png",gg)
 
 
-
 #carte à 1km du Lagon Bleu habitats
 gg <- ggplot()
 gg <- gg + geom_sf(data = land_lb)
