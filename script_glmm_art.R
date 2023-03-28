@@ -1,6 +1,7 @@
 library(sf); library(dplyr)
 library(data.table)
 library(DHARMa)
+library(lubridate)
 
 #Donnees balise Icarus #################################################################################################################################################
 
@@ -50,6 +51,15 @@ loc_courlis <- subset(loc_courlis, loc_courlis$bird_id != "C09")
 ## ajout de la colonne date (directement par RL dans les nouvelles donnees) et la colonne heure manuellement
 loc_courlis$heure_HH <- substr(loc_courlis$timestamp,12,13)
 loc_courlis$date_HH <- paste0(loc_courlis$date, "_", loc_courlis$heure_HH)
+
+
+setDT(loc_courlis)
+loc_courlis[,date := as.Date(date)]
+courlis_info <- loc_courlis[,.(data_number = .N,first_date = min(date), last_date = max(date),time_windows_duration = as.numeric(difftime(max(date),min(date)))+1,number_of_day_with_location = length(unique(date))),by = bird_id]
+print(courlis_info)
+fwrite(courlis_info,"output/courlis_info.csv")
+
+nrow(loc_courlis)
 
 
 # Transformation des coordonnees en donnees spatiales + modification de la projection
