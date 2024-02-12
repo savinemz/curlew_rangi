@@ -203,5 +203,5 @@ if(do_plot) {
 if(do_plot) plot(rangi_atoll)
 
 st_write(rangi_atoll, "SIG/rangi_atoll.shp")
-st_write(rangi, "SIG/rangi_motu.shp")
+st_write(rangi, "SIG/rangi_motu.shp",append=FALSE)
 
